@@ -64,6 +64,14 @@ Connect your visualization tools to SetuPranali.
 
     [:octicons-arrow-right-24: Qlik Sense Guide](qlik.md)
 
+-   :material-chart-line:{ .lg .middle } **Mode Analytics**
+
+    ---
+
+    Python notebooks and REST API for collaborative analytics.
+
+    [:octicons-arrow-right-24: Mode Analytics Guide](mode.md)
+
 -   :material-api:{ .lg .middle } **REST API**
 
     ---
@@ -97,6 +105,7 @@ Connect your visualization tools to SetuPranali.
 | Power BI | ✅ Native OData | ✅ Automatic | ✅ Redis |
 | Tableau | ✅ WDC | ✅ Automatic | ✅ Redis |
 | Qlik Sense | ✅ REST Connector | ✅ Automatic | ✅ Redis |
+| Mode Analytics | ✅ Python/REST | ✅ Automatic | ✅ Redis |
 
 ### Open Source BI
 

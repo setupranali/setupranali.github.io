@@ -94,7 +94,7 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 | Metabase | HTTP driver support | ✅ Completed |
 | Grafana | Data source plugin | ✅ Completed |
 | Qlik Sense | REST connector | ✅ Completed |
-| Mode Analytics | REST integration | 📋 Planned |
+| Mode Analytics | REST integration | ✅ Completed |
 
 ### Priority 4: Published Connectors & SDKs
 
