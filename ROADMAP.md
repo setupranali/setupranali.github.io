@@ -134,9 +134,9 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 | GraphQL API | Alternative query interface for modern tools | ✅ Completed |
 | Schema introspection API | Enhanced metadata for auto-discovery | ✅ Completed |
 | SQL endpoint | Direct SQL pass-through with RLS | ✅ Completed |
-| Streaming responses | Large result set streaming via SSE/WebSocket | 📋 Planned |
-| Batch queries | Execute multiple queries in one request | 📋 Planned |
-| JSON:API compliance | Standardized REST response format | 📋 Planned |
+| Streaming responses | Large result set streaming via SSE/WebSocket | ✅ Completed |
+| Batch queries | Execute multiple queries in one request | ✅ Completed |
+| JSON:API compliance | Standardized REST response format | ✅ Completed |
 
 ### BI Tool Deep Integrations
 

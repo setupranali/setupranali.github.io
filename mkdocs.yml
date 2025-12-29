@@ -192,6 +192,7 @@ nav:
     - SQL API: api-reference/sql.md
     - NLQ (Natural Language): api-reference/nlq.md
     - Schema Introspection: api-reference/introspection.md
+    - Advanced (Streaming, Batch, JSON:API): api-reference/advanced.md
     - OData API: api-reference/odata.md
     - Sources API: api-reference/sources.md
     - Authentication: api-reference/authentication.md
