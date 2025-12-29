@@ -23,6 +23,7 @@ import duckdb
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from app.catalog import load_catalog, get_dataset
 from app.models import QueryRequest, QueryResponse, ResultColumn
@@ -431,9 +432,6 @@ class SQLResponse(BaseModel):
     data: list
     rowCount: int
     executionTimeMs: int
-
-
-from pydantic import BaseModel
 
 
 @app.post("/v1/sql", tags=["SQL"])
