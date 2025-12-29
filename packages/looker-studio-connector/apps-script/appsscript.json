@@ -1,0 +1,20 @@
+{
+  "timeZone": "America/New_York",
+  "dependencies": {},
+  "dataStudio": {
+    "name": "SetuPranali Connector",
+    "logoUrl": "https://setupranali.github.io/assets/logo.svg",
+    "company": "SetuPranali Community",
+    "companyUrl": "https://setupranali.github.io",
+    "addonUrl": "https://setupranali.github.io/integrations/bi-tools/looker-studio/",
+    "supportUrl": "https://github.com/setupranali/setupranali.github.io/issues",
+    "description": "Connect Looker Studio to SetuPranali semantic layer for unified metrics and dimensions.",
+    "sources": ["setupranali"],
+    "templates": {
+      "default": "1ABC..."
+    }
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8"
+}
+

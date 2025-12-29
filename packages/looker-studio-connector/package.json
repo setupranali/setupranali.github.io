@@ -1,0 +1,57 @@
+{
+  "name": "@setupranali/looker-studio",
+  "version": "1.0.0",
+  "description": "Looker Studio (Google Data Studio) connector for SetuPranali semantic layer",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "apps-script",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/**/*.ts",
+    "test": "jest",
+    "prepublishOnly": "npm run build",
+    "deploy": "clasp push"
+  },
+  "keywords": [
+    "looker-studio",
+    "google-data-studio",
+    "setupranali",
+    "semantic-layer",
+    "bi",
+    "analytics",
+    "connector"
+  ],
+  "author": "SetuPranali Community",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/setupranali/setupranali.github.io.git",
+    "directory": "packages/looker-studio-connector"
+  },
+  "homepage": "https://setupranali.github.io/integrations/bi-tools/looker-studio/",
+  "bugs": {
+    "url": "https://github.com/setupranali/setupranali.github.io/issues"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2",
+    "@types/google-apps-script": "^1.0.70",
+    "@types/node": "^20.0.0",
+    "eslint": "^8.50.0",
+    "jest": "^29.7.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.2.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
+
