@@ -85,6 +85,18 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 | Looker Studio | Community Connector | ✅ Completed |
 | Metabase | HTTP driver support | ✅ Completed |
 | Grafana | Data source plugin | ✋ Help Wanted |
+| Qlik Sense | REST connector | 📋 Planned |
+| Mode Analytics | REST integration | 📋 Planned |
+
+### Priority 4: Published Connectors & SDKs
+
+| Package | Description | Status |
+|---------|-------------|--------|
+| `@setupranali/looker-studio` | NPM package for Looker Studio connector | 📋 Planned |
+| `setupranali-python` | Python SDK for programmatic access | 📋 Planned |
+| `setupranali-js` | JavaScript/TypeScript SDK | 📋 Planned |
+| Superset Database Driver | Official SQLAlchemy dialect | 📋 Planned |
+| Metabase Driver Plugin | Official Metabase driver JAR | 📋 Planned |
 
 ---
 
@@ -111,9 +123,23 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 
 | Feature | Description |
 |---------|-------------|
-| GraphQL API | Alternative query interface |
-| Streaming responses | Large result set streaming |
+| GraphQL API | Alternative query interface for modern tools |
+| Streaming responses | Large result set streaming via SSE/WebSocket |
 | Batch queries | Execute multiple queries in one request |
+| Schema introspection API | Enhanced metadata for auto-discovery |
+| JSON:API compliance | Standardized REST response format |
+| SQL endpoint | Direct SQL pass-through with RLS |
+
+### BI Tool Deep Integrations
+
+| Feature | Description |
+|---------|-------------|
+| Superset Database Plugin | Native SQLAlchemy dialect `superset://` |
+| Metabase Certified Driver | Official driver in Metabase marketplace |
+| Looker Studio Published Connector | Listed in Google connector gallery |
+| Excel Add-in | Native Excel add-in for direct queries |
+| Google Sheets Connector | Apps Script add-on for Sheets |
+| Jupyter Widget | Interactive widget for notebooks |
 
 ---
 
@@ -136,6 +162,27 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 | Cube.js compatibility | Interoperability with Cube schemas |
 | VS Code extension | Catalog editing with IntelliSense |
 | Web UI | Admin dashboard for configuration |
+| LookML import | Import Looker/LookML models |
+| Power BI Dataset sync | Sync semantic model to Power BI Service |
+
+### Enterprise BI Features
+
+| Feature | Description |
+|---------|-------------|
+| Tableau Hyper export | Export datasets as Hyper files |
+| Power BI Push datasets | Push data directly to Power BI |
+| Embedded analytics | Embed-ready endpoints with tokens |
+| White-label support | Custom branding for OEM deployments |
+| Multi-region deployment | Geo-distributed caching and routing |
+
+### AI/ML Integration
+
+| Feature | Description |
+|---------|-------------|
+| Natural language queries | Ask questions in plain English |
+| Auto-generated descriptions | AI-powered metric documentation |
+| Anomaly detection | Automatic alerts on metric anomalies |
+| Query suggestions | Smart autocomplete for dimensions/metrics |
 
 ---
 
