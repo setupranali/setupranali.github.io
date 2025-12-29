@@ -39,6 +39,9 @@ redshift-connector>=2.0.0
 # MySQL / MariaDB
 mysql-connector-python>=8.0.0
 
+# Trino / Presto (federated queries)
+trino>=0.327.0
+
 # -----------------------------------------------------------------------------
 # Security & Encryption
 # -----------------------------------------------------------------------------

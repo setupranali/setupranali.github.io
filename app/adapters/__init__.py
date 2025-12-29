@@ -11,9 +11,13 @@ Each adapter handles:
 Supported Engines:
 - DuckDB (built-in, for demos)
 - PostgreSQL
+- MySQL / MariaDB
 - Snowflake (TB-scale)
-- BigQuery (planned)
-- Databricks (planned)
+- BigQuery
+- Databricks
+- Redshift
+- ClickHouse
+- Trino / Presto (federated queries)
 """
 
 from app.adapters.base import BaseAdapter, AdapterResult, ConnectionError, QueryError

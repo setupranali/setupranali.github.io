@@ -284,6 +284,15 @@ def _register_builtin_adapters():
         register_adapter("mariadb", MySQLAdapter)  # MariaDB compatible
     except ImportError as e:
         logger.debug(f"MySQL adapter not available: {e}")
+    
+    # Trino / Presto
+    try:
+        from app.adapters.trino_adapter import TrinoAdapter, PrestoAdapter
+        register_adapter("trino", TrinoAdapter)
+        register_adapter("presto", PrestoAdapter)  # Alias for Presto mode
+        register_adapter("prestodb", PrestoAdapter)  # Another alias
+    except ImportError as e:
+        logger.debug(f"Trino/Presto adapter not available: {e}")
 
 
 # Register on module load

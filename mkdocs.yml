@@ -159,6 +159,7 @@ nav:
       - Databricks: integrations/sources/databricks.md
       - Redshift: integrations/sources/redshift.md
       - ClickHouse: integrations/sources/clickhouse.md
+      - Trino/Presto: integrations/sources/trino.md
     - BI Tools:
       - integrations/bi-tools/index.md
       - Power BI: integrations/bi-tools/powerbi.md

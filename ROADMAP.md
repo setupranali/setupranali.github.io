@@ -78,7 +78,7 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 
 | Database | Contributor Needed | Difficulty |
 |----------|-------------------|------------|
-| Trino/Presto | ✋ Help Wanted | Medium |
+| Trino/Presto | ✅ Completed | Medium |
 | SQL Server | ✋ Help Wanted | Medium |
 | Oracle | ✋ Help Wanted | Medium |
 | SQLite | ✋ Help Wanted | Easy |
