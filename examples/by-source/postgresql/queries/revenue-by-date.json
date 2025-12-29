@@ -1,0 +1,19 @@
+{
+  "dataset": "orders",
+  "dimensions": ["order_date"],
+  "metrics": ["total_revenue", "order_count", "average_order_value"],
+  "filters": [
+    {
+      "dimension": "status",
+      "operator": "!=",
+      "value": "cancelled"
+    }
+  ],
+  "orderBy": [
+    {
+      "field": "order_date",
+      "direction": "asc"
+    }
+  ]
+}
+

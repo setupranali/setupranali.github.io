@@ -1,0 +1,76 @@
+# =============================================================================
+# SetuPranali MySQL Example
+# =============================================================================
+
+sources:
+  mysql_db:
+    type: mysql
+    connection:
+      host: ${MYSQL_HOST}
+      port: ${MYSQL_PORT}
+      database: ${MYSQL_DB}
+      user: ${MYSQL_USER}
+      password: ${MYSQL_PASSWORD}
+
+api_keys:
+  demo_key:
+    name: "Demo Key"
+    tenant_id: "demo"
+    rate_limit: 1000
+
+datasets:
+  sales:
+    name: "Sales"
+    description: "Sales transaction data"
+    source: mysql_db
+    table: sales
+    
+    dimensions:
+      - name: sale_id
+        type: string
+        sql: sale_id
+        primary_key: true
+        
+      - name: sale_date
+        type: date
+        sql: sale_date
+        
+      - name: sale_month
+        type: string
+        sql: DATE_FORMAT(sale_date, '%Y-%m')
+        
+      - name: product_name
+        type: string
+        sql: product_name
+        
+      - name: category
+        type: string
+        sql: category
+        
+      - name: region
+        type: string
+        sql: region
+        
+      - name: salesperson
+        type: string
+        sql: salesperson
+    
+    metrics:
+      - name: total_sales
+        type: sum
+        sql: amount
+        format: "$,.2f"
+        
+      - name: transaction_count
+        type: count
+        sql: sale_id
+        
+      - name: avg_sale
+        type: avg
+        sql: amount
+        format: "$,.2f"
+        
+      - name: total_units
+        type: sum
+        sql: units_sold
+

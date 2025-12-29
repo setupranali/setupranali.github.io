@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  setupranali:
+    image: adeygifting/connector:latest
+    container_name: setupranali-minimal
+    ports:
+      - "8080:8080"
+    environment:
+      - UBI_SECRET_KEY=demo-secret-key-change-in-production
+      - UBI_LOG_LEVEL=INFO
+    volumes:
+      - ./catalog.yaml:/app/catalog.yaml:ro
+      - ./data:/app/data:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# No Redis needed for this minimal example (caching disabled)
+# No external database needed (using SQLite)
+

@@ -1,0 +1,12 @@
+{
+  "dataset": "sales",
+  "dimensions": ["category", "region"],
+  "metrics": ["total_sales", "transaction_count", "avg_sale"],
+  "orderBy": [
+    {
+      "field": "total_sales",
+      "direction": "desc"
+    }
+  ]
+}
+

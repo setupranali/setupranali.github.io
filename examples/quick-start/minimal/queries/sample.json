@@ -1,0 +1,20 @@
+{
+  "dataset": "orders",
+  "dimensions": ["order_date", "status"],
+  "metrics": ["total_revenue", "order_count"],
+  "filters": [
+    {
+      "dimension": "order_date",
+      "operator": ">=",
+      "value": "2024-01-01"
+    }
+  ],
+  "limit": 100,
+  "orderBy": [
+    {
+      "field": "order_date",
+      "direction": "desc"
+    }
+  ]
+}
+

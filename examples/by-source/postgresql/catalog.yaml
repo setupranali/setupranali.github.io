@@ -1,0 +1,244 @@
+# =============================================================================
+# SetuPranali PostgreSQL Example - catalog.yaml
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Data Sources
+# -----------------------------------------------------------------------------
+sources:
+  postgres_db:
+    type: postgres
+    connection:
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      database: ${POSTGRES_DB}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      ssl_mode: disable  # Use 'require' in production
+
+# -----------------------------------------------------------------------------
+# API Keys
+# -----------------------------------------------------------------------------
+api_keys:
+  demo_key:
+    name: "Demo API Key"
+    tenant_id: "demo"
+    rate_limit: 1000
+
+  analyst_key:
+    name: "Analyst Key"
+    tenant_id: "demo"
+    rate_limit: 500
+
+  # Multi-tenant keys for RLS demo
+  tenant_a_key:
+    name: "Tenant A"
+    tenant_id: "tenant_a"
+    rate_limit: 100
+    
+  tenant_b_key:
+    name: "Tenant B"
+    tenant_id: "tenant_b"
+    rate_limit: 100
+
+# -----------------------------------------------------------------------------
+# Datasets
+# -----------------------------------------------------------------------------
+datasets:
+  # Orders Dataset
+  orders:
+    name: "Orders"
+    description: "E-commerce order transactions"
+    source: postgres_db
+    table: public.orders
+    default_timezone: "UTC"
+    tags:
+      - sales
+      - ecommerce
+    
+    dimensions:
+      - name: order_id
+        type: string
+        sql: order_id
+        description: "Unique order identifier"
+        primary_key: true
+        
+      - name: order_date
+        type: date
+        sql: order_date
+        description: "Date order was placed"
+        
+      - name: order_month
+        type: string
+        sql: TO_CHAR(order_date, 'YYYY-MM')
+        description: "Month of order (YYYY-MM)"
+        
+      - name: order_year
+        type: number
+        sql: EXTRACT(YEAR FROM order_date)
+        description: "Year of order"
+        
+      - name: customer_id
+        type: string
+        sql: customer_id
+        description: "Customer identifier"
+        
+      - name: status
+        type: string
+        sql: status
+        description: "Order status"
+        
+      - name: region
+        type: string
+        sql: region
+        description: "Geographic region"
+        
+      - name: category
+        type: string
+        sql: category
+        description: "Product category"
+        
+      - name: payment_method
+        type: string
+        sql: payment_method
+        description: "Payment method used"
+    
+    metrics:
+      - name: total_revenue
+        type: sum
+        sql: amount
+        description: "Total revenue"
+        format: "$,.2f"
+        
+      - name: order_count
+        type: count
+        sql: order_id
+        description: "Number of orders"
+        
+      - name: average_order_value
+        type: avg
+        sql: amount
+        description: "Average order value"
+        format: "$,.2f"
+        
+      - name: unique_customers
+        type: count_distinct
+        sql: customer_id
+        description: "Unique customers"
+        
+      - name: total_quantity
+        type: sum
+        sql: quantity
+        description: "Total items sold"
+
+  # Customers Dataset
+  customers:
+    name: "Customers"
+    description: "Customer information and metrics"
+    source: postgres_db
+    table: public.customers
+    tags:
+      - customers
+      - crm
+    
+    dimensions:
+      - name: customer_id
+        type: string
+        sql: customer_id
+        primary_key: true
+        
+      - name: customer_name
+        type: string
+        sql: name
+        
+      - name: email
+        type: string
+        sql: email
+        
+      - name: segment
+        type: string
+        sql: segment
+        description: "Customer segment (Premium, Standard, Basic)"
+        
+      - name: signup_date
+        type: date
+        sql: created_at
+        
+      - name: country
+        type: string
+        sql: country
+        
+      - name: city
+        type: string
+        sql: city
+    
+    metrics:
+      - name: customer_count
+        type: count
+        sql: customer_id
+        
+      - name: lifetime_value
+        type: sum
+        sql: lifetime_value
+
+  # Products Dataset
+  products:
+    name: "Products"
+    description: "Product catalog"
+    source: postgres_db
+    table: public.products
+    tags:
+      - products
+      - inventory
+    
+    dimensions:
+      - name: product_id
+        type: string
+        sql: product_id
+        primary_key: true
+        
+      - name: product_name
+        type: string
+        sql: name
+        
+      - name: category
+        type: string
+        sql: category
+        
+      - name: brand
+        type: string
+        sql: brand
+        
+      - name: supplier
+        type: string
+        sql: supplier
+    
+    metrics:
+      - name: product_count
+        type: count
+        sql: product_id
+        
+      - name: avg_price
+        type: avg
+        sql: price
+        
+      - name: total_inventory
+        type: sum
+        sql: stock_quantity
+
+# -----------------------------------------------------------------------------
+# Row-Level Security
+# -----------------------------------------------------------------------------
+rls:
+  orders:
+    field: tenant_id
+    operator: "="
+
+# -----------------------------------------------------------------------------
+# Cache Configuration
+# -----------------------------------------------------------------------------
+cache:
+  enabled: true
+  ttl: 300  # 5 minutes
+  prefix: "setupranali:postgres:"
+

@@ -1,0 +1,16 @@
+{
+  "dataset": "orders",
+  "dimensions": ["region", "category"],
+  "metrics": ["total_revenue", "order_count", "average_order_value"],
+  "orderBy": [
+    {
+      "field": "region",
+      "direction": "asc"
+    },
+    {
+      "field": "total_revenue",
+      "direction": "desc"
+    }
+  ]
+}
+

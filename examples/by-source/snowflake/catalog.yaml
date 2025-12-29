@@ -1,0 +1,138 @@
+# =============================================================================
+# SetuPranali Snowflake Example
+# =============================================================================
+
+sources:
+  snowflake_db:
+    type: snowflake
+    connection:
+      account: ${SNOWFLAKE_ACCOUNT}
+      user: ${SNOWFLAKE_USER}
+      password: ${SNOWFLAKE_PASSWORD}
+      database: ${SNOWFLAKE_DATABASE}
+      schema: ${SNOWFLAKE_SCHEMA}
+      warehouse: ${SNOWFLAKE_WAREHOUSE}
+      role: ${SNOWFLAKE_ROLE}
+
+api_keys:
+  demo_key:
+    name: "Demo Key"
+    tenant_id: "demo"
+    rate_limit: 1000
+
+datasets:
+  orders:
+    name: "Orders"
+    description: "E-commerce orders from Snowflake"
+    source: snowflake_db
+    table: ORDERS
+    
+    dimensions:
+      - name: order_id
+        type: string
+        sql: ORDER_ID
+        primary_key: true
+        
+      - name: order_date
+        type: date
+        sql: ORDER_DATE
+        
+      - name: order_month
+        type: string
+        sql: TO_CHAR(ORDER_DATE, 'YYYY-MM')
+        
+      - name: order_quarter
+        type: string
+        sql: CONCAT('Q', QUARTER(ORDER_DATE))
+        
+      - name: customer_id
+        type: string
+        sql: CUSTOMER_ID
+        
+      - name: customer_segment
+        type: string
+        sql: CUSTOMER_SEGMENT
+        
+      - name: region
+        type: string
+        sql: REGION
+        
+      - name: country
+        type: string
+        sql: COUNTRY
+        
+      - name: product_category
+        type: string
+        sql: PRODUCT_CATEGORY
+        
+      - name: status
+        type: string
+        sql: ORDER_STATUS
+    
+    metrics:
+      - name: revenue
+        type: sum
+        sql: ORDER_TOTAL
+        description: "Total revenue"
+        format: "$,.2f"
+        
+      - name: order_count
+        type: count
+        sql: ORDER_ID
+        description: "Number of orders"
+        
+      - name: average_order_value
+        type: avg
+        sql: ORDER_TOTAL
+        format: "$,.2f"
+        
+      - name: unique_customers
+        type: count_distinct
+        sql: CUSTOMER_ID
+        
+      - name: items_sold
+        type: sum
+        sql: QUANTITY
+
+  customers:
+    name: "Customers"
+    description: "Customer master data"
+    source: snowflake_db
+    table: CUSTOMERS
+    
+    dimensions:
+      - name: customer_id
+        type: string
+        sql: CUSTOMER_ID
+        primary_key: true
+        
+      - name: customer_name
+        type: string
+        sql: CUSTOMER_NAME
+        
+      - name: segment
+        type: string
+        sql: SEGMENT
+        
+      - name: region
+        type: string
+        sql: REGION
+        
+      - name: signup_date
+        type: date
+        sql: CREATED_AT
+    
+    metrics:
+      - name: customer_count
+        type: count
+        sql: CUSTOMER_ID
+        
+      - name: total_ltv
+        type: sum
+        sql: LIFETIME_VALUE
+
+cache:
+  enabled: true
+  ttl: 600
+  prefix: "setupranali:snowflake:"
+

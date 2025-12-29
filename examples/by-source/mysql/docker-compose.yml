@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: setupranali-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: analytics
+      MYSQL_USER: analytics_user
+      MYSQL_PASSWORD: analytics_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: setupranali-redis
+    ports:
+      - "6379:6379"
+
+  setupranali:
+    image: adeygifting/connector:latest
+    container_name: setupranali-connector
+    ports:
+      - "8080:8080"
+    environment:
+      - UBI_SECRET_KEY=example-secret-key
+      - REDIS_URL=redis://redis:6379/0
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DB=analytics
+      - MYSQL_USER=analytics_user
+      - MYSQL_PASSWORD=analytics_password
+    volumes:
+      - ./catalog.yaml:/app/catalog.yaml:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
+

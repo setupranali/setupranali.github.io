@@ -1,0 +1,137 @@
+# =============================================================================
+# SetuPranali BigQuery Example
+# =============================================================================
+
+sources:
+  bigquery_db:
+    type: bigquery
+    connection:
+      project: ${BIGQUERY_PROJECT}
+      location: ${BIGQUERY_LOCATION:-US}
+      # Uses GOOGLE_APPLICATION_CREDENTIALS env var
+
+api_keys:
+  demo_key:
+    name: "Demo Key"
+    tenant_id: "demo"
+    rate_limit: 1000
+
+datasets:
+  ecommerce_orders:
+    name: "E-commerce Orders"
+    description: "Orders from BigQuery e-commerce dataset"
+    source: bigquery_db
+    table: bigquery-public-data.thelook_ecommerce.orders
+    
+    dimensions:
+      - name: order_id
+        type: number
+        sql: order_id
+        primary_key: true
+        
+      - name: created_at
+        type: timestamp
+        sql: created_at
+        
+      - name: order_date
+        type: date
+        sql: DATE(created_at)
+        
+      - name: order_month
+        type: string
+        sql: FORMAT_DATE('%Y-%m', DATE(created_at))
+        
+      - name: user_id
+        type: number
+        sql: user_id
+        
+      - name: status
+        type: string
+        sql: status
+        
+      - name: gender
+        type: string
+        sql: gender
+        
+      - name: num_of_item
+        type: number
+        sql: num_of_item
+    
+    metrics:
+      - name: order_count
+        type: count
+        sql: order_id
+        
+      - name: unique_users
+        type: count_distinct
+        sql: user_id
+        
+      - name: total_items
+        type: sum
+        sql: num_of_item
+        
+      - name: avg_items_per_order
+        type: avg
+        sql: num_of_item
+
+  ecommerce_users:
+    name: "E-commerce Users"
+    description: "Users from BigQuery e-commerce dataset"
+    source: bigquery_db
+    table: bigquery-public-data.thelook_ecommerce.users
+    
+    dimensions:
+      - name: id
+        type: number
+        sql: id
+        primary_key: true
+        
+      - name: created_at
+        type: timestamp
+        sql: created_at
+        
+      - name: country
+        type: string
+        sql: country
+        
+      - name: city
+        type: string
+        sql: city
+        
+      - name: traffic_source
+        type: string
+        sql: traffic_source
+        
+      - name: gender
+        type: string
+        sql: gender
+        
+      - name: age
+        type: number
+        sql: age
+        
+      - name: age_group
+        type: string
+        sql: |
+          CASE 
+            WHEN age < 25 THEN '18-24'
+            WHEN age < 35 THEN '25-34'
+            WHEN age < 45 THEN '35-44'
+            WHEN age < 55 THEN '45-54'
+            ELSE '55+'
+          END
+    
+    metrics:
+      - name: user_count
+        type: count
+        sql: id
+        
+      - name: avg_age
+        type: avg
+        sql: age
+
+cache:
+  enabled: true
+  ttl: 300
+  prefix: "setupranali:bigquery:"
+

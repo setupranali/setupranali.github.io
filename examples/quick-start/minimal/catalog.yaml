@@ -1,0 +1,99 @@
+# =============================================================================
+# SetuPranali Minimal Example - catalog.yaml
+# =============================================================================
+# This is the simplest possible configuration to get started.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Data Sources
+# -----------------------------------------------------------------------------
+sources:
+  demo_sqlite:
+    type: sqlite
+    connection:
+      database: /app/data/orders.db
+      read_only: true
+
+# -----------------------------------------------------------------------------
+# API Keys (for demo purposes - use secure keys in production!)
+# -----------------------------------------------------------------------------
+api_keys:
+  demo_api_key:
+    name: "Demo Key"
+    tenant_id: "demo"
+    rate_limit: 1000
+
+# -----------------------------------------------------------------------------
+# Datasets (Semantic Layer)
+# -----------------------------------------------------------------------------
+datasets:
+  orders:
+    name: "Orders"
+    description: "E-commerce order data for analysis"
+    source: demo_sqlite
+    table: orders
+    
+    # Dimensions - categorical/grouping fields
+    dimensions:
+      - name: order_id
+        type: string
+        sql: order_id
+        description: "Unique order identifier"
+        
+      - name: order_date
+        type: date
+        sql: order_date
+        description: "Date when order was placed"
+        
+      - name: status
+        type: string
+        sql: status
+        description: "Order status (pending, shipped, delivered, cancelled)"
+        
+      - name: customer_id
+        type: string
+        sql: customer_id
+        description: "Customer identifier"
+        
+      - name: region
+        type: string
+        sql: region
+        description: "Geographic region"
+        
+      - name: category
+        type: string
+        sql: category
+        description: "Product category"
+    
+    # Metrics - numeric aggregations
+    metrics:
+      - name: total_revenue
+        type: sum
+        sql: amount
+        description: "Total revenue from orders"
+        format: "$,.2f"
+        
+      - name: order_count
+        type: count
+        sql: order_id
+        description: "Number of orders"
+        
+      - name: average_order_value
+        type: avg
+        sql: amount
+        description: "Average order value"
+        format: "$,.2f"
+        
+      - name: unique_customers
+        type: count_distinct
+        sql: customer_id
+        description: "Number of unique customers"
+
+# -----------------------------------------------------------------------------
+# Row-Level Security (Optional - disabled for this demo)
+# -----------------------------------------------------------------------------
+# rls:
+#   orders:
+#     field: tenant_id
+#     operator: "="
+

@@ -164,6 +164,7 @@ Already evaluating semantic layers? Here's how SetuPranali differs:
 | [**Concepts**](docs/concepts/index.md) | Architecture, security model |
 | [**API Reference**](docs/api-reference/index.md) | Complete endpoint docs |
 | [**Integrations**](docs/integrations/index.md) | BI tools, databases |
+| [**Examples**](examples/) | Ready-to-use configs for all sources & BI tools |
 
 ---
 
