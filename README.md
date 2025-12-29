@@ -69,6 +69,10 @@ It's an open-source semantic gateway that bridges your BI tools (Power BI, Table
 - **📊 Power BI Sync** — Sync to Power BI Service
 - **🖥️ VS Code Extension** — Catalog editing with IntelliSense
 - **🌐 Web UI** — Admin dashboard for configuration
+- **📊 Tableau Hyper Export** — Export datasets as Hyper files
+- **🔗 Embedded Analytics** — Embed-ready endpoints with tokens
+- **🏷️ White-Label** — Custom branding for OEM deployments
+- **🌍 Multi-Region** — Geo-distributed caching and routing
 
 ---
 

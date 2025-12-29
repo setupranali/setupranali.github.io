@@ -176,13 +176,13 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 
 ### Enterprise BI Features
 
-| Feature | Description |
-|---------|-------------|
-| Tableau Hyper export | Export datasets as Hyper files |
-| Power BI Push datasets | Push data directly to Power BI |
-| Embedded analytics | Embed-ready endpoints with tokens |
-| White-label support | Custom branding for OEM deployments |
-| Multi-region deployment | Geo-distributed caching and routing |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| Tableau Hyper export | Export datasets as Hyper files | ✅ Completed |
+| Power BI Push datasets | Push data directly to Power BI | ✅ Completed |
+| Embedded analytics | Embed-ready endpoints with tokens | ✅ Completed |
+| White-label support | Custom branding for OEM deployments | ✅ Completed |
+| Multi-region deployment | Geo-distributed caching and routing | ✅ Completed |
 
 ### AI/ML Integration
 

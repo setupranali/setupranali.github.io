@@ -37,6 +37,7 @@ from app.odata import router as odata_router
 from app.graphql_api import graphql_router
 from app.advanced_routes import router as advanced_router
 from app.ecosystem.routes import router as ecosystem_router
+from app.enterprise.routes import router as enterprise_router
 from app.security import require_api_key, require_internal_admin, TenantContext
 from app.crypto import is_encryption_configured
 from app.rate_limit import limit_query, limit_odata, limit_sources
@@ -215,6 +216,13 @@ app.include_router(
     ecosystem_router,
     prefix="/v1/ecosystem",
     tags=["Ecosystem"]
+)
+
+# Enterprise Features (Hyper export, Embed, White-label, Multi-region)
+app.include_router(
+    enterprise_router,
+    prefix="/v1/enterprise",
+    tags=["Enterprise"]
 )
 
 

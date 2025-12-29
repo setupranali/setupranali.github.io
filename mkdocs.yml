@@ -149,6 +149,7 @@ nav:
     - AI Features: guides/ai-features.md
     - Advanced Data Features: guides/advanced-data-features.md
     - Ecosystem Integrations: guides/ecosystem.md
+    - Enterprise Features: guides/enterprise.md
     - Row-Level Security: guides/rls.md
     - Incremental Refresh: guides/incremental-refresh.md
     - Multi-Tenant Setup: guides/multi-tenant.md
