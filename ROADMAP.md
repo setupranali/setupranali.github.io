@@ -93,10 +93,10 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 | Package | Description | Status |
 |---------|-------------|--------|
 | `@setupranali/looker-studio` | NPM package for Looker Studio connector | 📋 Planned |
-| `setupranali-python` | Python SDK for programmatic access | 📋 Planned |
-| `setupranali-js` | JavaScript/TypeScript SDK | 📋 Planned |
+| `setupranali-python` | Python SDK for programmatic access | ✅ Completed |
+| `setupranali-js` | JavaScript/TypeScript SDK | ✅ Completed |
 | Superset Database Driver | Official SQLAlchemy dialect | 📋 Planned |
-| Metabase Driver Plugin | Official Metabase driver JAR | 📋 Planned |
+| **Metabase Driver Plugin** | Official Metabase driver JAR | ✅ Completed |
 
 ---
 

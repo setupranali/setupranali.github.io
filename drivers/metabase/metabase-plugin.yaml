@@ -1,0 +1,36 @@
+info:
+  name: SetuPranali
+  version: 1.0.0
+  description: SetuPranali semantic layer driver for Metabase
+  contact-info:
+    name: SetuPranali Team
+    address: https://github.com/setupranali/setupranali.github.io
+
+driver:
+  name: setupranali
+  display-name: SetuPranali
+  lazy-load: true
+  parent: sql-jdbc
+  connection-properties:
+    - name: host
+      display-name: Host
+      placeholder: localhost
+      required: true
+    - name: port
+      display-name: Port
+      type: integer
+      default: 8080
+      required: true
+    - name: api-key
+      display-name: API Key
+      type: password
+      required: true
+    - name: ssl
+      display-name: Use SSL
+      type: boolean
+      default: false
+
+init:
+  - step: load-namespace
+    namespace: metabase.driver.setupranali
+

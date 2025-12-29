@@ -4,32 +4,57 @@ Connect Metabase to your data warehouse through SetuPranali's semantic layer.
 
 ## Overview
 
-SetuPranali integrates with Metabase in two ways:
+SetuPranali provides a **native Metabase driver** for seamless integration:
 
-1. **HTTP API Driver** - Query SetuPranali's REST API directly
-2. **Database Proxy** - Use SetuPranali as a governance layer
+- 🔌 **Native Integration** - Appears as "SetuPranali" in database list
+- 🔒 **Secure** - API key authentication with RLS
+- 📊 **Auto-Discovery** - Automatically discovers datasets
+- ⚡ **Zero Config** - Works out of the box
 
 ---
 
-## Method 1: HTTP API Integration (Recommended)
+## Method 1: Native Driver (Recommended)
 
-### Step 1: Install HTTP Driver
+### Step 1: Install SetuPranali Driver
 
-Metabase supports custom drivers. Install the HTTP driver:
+Download and install the official SetuPranali driver:
 
 ```bash
-# Download the HTTP driver
-curl -L -o metabase-http-driver.jar \
-  https://github.com/server/metabase-http-driver/releases/latest/download/http-driver.jar
+# Download the driver
+curl -L -o setupranali-driver.metabase-driver.jar \
+  https://github.com/setupranali/setupranali.github.io/releases/latest/download/setupranali-driver.metabase-driver.jar
 
 # Copy to Metabase plugins directory
-cp metabase-http-driver.jar /path/to/metabase/plugins/
+cp setupranali-driver.metabase-driver.jar /path/to/metabase/plugins/
+
+# Restart Metabase
+```
+
+### Docker Installation
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  metabase:
+    image: metabase/metabase:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./setupranali-driver.metabase-driver.jar:/plugins/setupranali-driver.metabase-driver.jar
+    depends_on:
+      - setupranali
+
+  setupranali:
+    image: adeygifting/connector:latest
+    ports:
+      - "8080:8080"
 ```
 
 ### Step 2: Configure Connection
 
 1. Go to **Admin → Databases → Add database**
-2. Select **HTTP** as database type
+2. Select **SetuPranali** from the dropdown
 3. Configure:
 
 ```yaml
