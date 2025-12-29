@@ -34,6 +34,7 @@ from app.sources import SOURCES
 from app.connection_manager import get_engine_and_conn
 from app.security import require_api_key, TenantContext
 from app.cache import execute_with_cache, build_cache_components_from_request
+from app.errors import dataset_not_found, internal_error, SetuPranaliError
 
 router = APIRouter()
 
@@ -634,10 +635,16 @@ def odata_query_entity_set(
     """
     # Load dataset from catalog
     catalog = load_catalog()
+    request_id = getattr(request.state, "request_id", None)
     try:
         dataset = get_dataset(catalog, datasetId)
     except KeyError:
-        raise HTTPException(status_code=404, detail=f"Entity set '{datasetId}' not found")
+        available = [ds["id"] for ds in catalog.get("datasets", [])]
+        raise dataset_not_found(
+            dataset=datasetId,
+            available_datasets=available,
+            request_id=request_id
+        )
     
     # Extract OData query params
     params = dict(request.query_params)
@@ -729,8 +736,14 @@ def odata_query_entity_set(
             execute_fn=execute_query,
             cache_components=cache_components
         )
+    except SetuPranaliError:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise internal_error(
+            message=f"OData query failed: {str(e)}",
+            details={"dataset": datasetId},
+            request_id=request_id
+        )
     
     # Build OData response
     service_root = str(request.url).split("?")[0].rsplit("/", 1)[0]

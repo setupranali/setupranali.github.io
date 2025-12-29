@@ -69,8 +69,8 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| Better error messages | Clearer error responses for debugging | 🔄 In Progress |
-| OpenAPI documentation | Interactive API docs with examples | 📋 Planned |
+| Better error messages | Clearer error responses for debugging | ✅ Completed |
+| OpenAPI documentation | Interactive API docs with examples | ✅ Available at /docs |
 | CLI tool | Command-line interface for management | 📋 Planned |
 | Helm chart | Official Kubernetes Helm chart | 📋 Planned |
 

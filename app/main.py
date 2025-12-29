@@ -38,6 +38,21 @@ from app.graphql_api import graphql_router
 from app.security import require_api_key, require_internal_admin, TenantContext
 from app.crypto import is_encryption_configured
 from app.rate_limit import limit_query, limit_odata, limit_sources
+from app.errors import (
+    install_error_handlers,
+    dataset_not_found,
+    dimension_not_found,
+    metric_not_found,
+    source_not_found,
+    connection_failed,
+    sql_unsafe,
+    query_timeout,
+    nlq_provider_missing,
+    nlq_translation_failed,
+    internal_error,
+    decryption_failed,
+    SetuPranaliError
+)
 
 
 # =============================================================================
@@ -82,6 +97,9 @@ app = FastAPI(
 async def startup_event():
     """Initialize databases, check configuration, and log warnings."""
     warnings_logged = []
+    
+    # Install structured error handlers
+    install_error_handlers(app)
     
     # Initialize sources database
     init_sources_db()
@@ -246,47 +264,67 @@ def list_datasets():
 
 
 @app.get("/v1/datasets/{datasetId}", tags=["Datasets"])
-def get_dataset_detail(datasetId: str):
+def get_dataset_detail(datasetId: str, request: Request):
     """Get dataset details."""
     catalog = load_catalog()
     try:
         d = get_dataset(catalog, datasetId)
         return d
     except KeyError:
-        raise HTTPException(status_code=404, detail="Dataset not found")
+        available = [ds["id"] for ds in catalog.get("datasets", [])]
+        raise dataset_not_found(
+            dataset=datasetId,
+            available_datasets=available,
+            request_id=getattr(request.state, "request_id", None)
+        )
 
 
 @app.get("/v1/datasets/{datasetId}/schema", tags=["Datasets"])
-def get_schema(datasetId: str):
+def get_schema(datasetId: str, request: Request):
     """Get dataset schema."""
     catalog = load_catalog()
     try:
         d = get_dataset(catalog, datasetId)
         return {"datasetId": datasetId, "fields": d.get("fields", [])}
     except KeyError:
-        raise HTTPException(status_code=404, detail="Dataset not found")
+        available = [ds["id"] for ds in catalog.get("datasets", [])]
+        raise dataset_not_found(
+            dataset=datasetId,
+            available_datasets=available,
+            request_id=getattr(request.state, "request_id", None)
+        )
 
 
 @app.get("/v1/datasets/{datasetId}/dimensions", tags=["Datasets"])
-def get_dimensions(datasetId: str):
+def get_dimensions(datasetId: str, request: Request):
     """Get dataset dimensions."""
     catalog = load_catalog()
     try:
         d = get_dataset(catalog, datasetId)
         return {"items": d.get("dimensions", [])}
     except KeyError:
-        raise HTTPException(status_code=404, detail="Dataset not found")
+        available = [ds["id"] for ds in catalog.get("datasets", [])]
+        raise dataset_not_found(
+            dataset=datasetId,
+            available_datasets=available,
+            request_id=getattr(request.state, "request_id", None)
+        )
 
 
 @app.get("/v1/datasets/{datasetId}/metrics", tags=["Datasets"])
-def get_metrics(datasetId: str):
+def get_metrics(datasetId: str, request: Request):
     """Get dataset metrics."""
     catalog = load_catalog()
     try:
         d = get_dataset(catalog, datasetId)
         return {"items": d.get("metrics", [])}
     except KeyError:
-        raise HTTPException(status_code=404, detail="Dataset not found")
+        available = [ds["id"] for ds in catalog.get("datasets", [])]
+        raise dataset_not_found(
+            dataset=datasetId,
+            available_datasets=available,
+            request_id=getattr(request.state, "request_id", None)
+        )
 
 
 # =============================================================================
@@ -464,25 +502,39 @@ def run_sql_query(
     
     start_time = time.time()
     
+    request_id = getattr(request.state, "request_id", None)
+    
     # Security: Only allow SELECT queries
     sql_upper = req.sql.strip().upper()
     if not sql_upper.startswith("SELECT"):
-        raise HTTPException(
-            status_code=400, 
-            detail="Only SELECT queries are allowed"
+        raise sql_unsafe(
+            reason="Only SELECT queries are allowed",
+            pattern="non-SELECT statement",
+            request_id=request_id
         )
     
     # Security: Block dangerous operations
     dangerous_patterns = [
-        r'\bDROP\b', r'\bDELETE\b', r'\bTRUNCATE\b', r'\bINSERT\b',
-        r'\bUPDATE\b', r'\bALTER\b', r'\bCREATE\b', r'\bGRANT\b',
-        r'\bREVOKE\b', r'\bEXEC\b', r'\bEXECUTE\b', r'--', r'/\*'
+        (r'\bDROP\b', "DROP"),
+        (r'\bDELETE\b', "DELETE"),
+        (r'\bTRUNCATE\b', "TRUNCATE"),
+        (r'\bINSERT\b', "INSERT"),
+        (r'\bUPDATE\b', "UPDATE"),
+        (r'\bALTER\b', "ALTER"),
+        (r'\bCREATE\b', "CREATE"),
+        (r'\bGRANT\b', "GRANT"),
+        (r'\bREVOKE\b', "REVOKE"),
+        (r'\bEXEC\b', "EXEC"),
+        (r'\bEXECUTE\b', "EXECUTE"),
+        (r'--', "SQL comment"),
+        (r'/\*', "Block comment")
     ]
-    for pattern in dangerous_patterns:
+    for pattern, name in dangerous_patterns:
         if re.search(pattern, req.sql, re.IGNORECASE):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Query contains disallowed operation"
+            raise sql_unsafe(
+                reason=f"Query contains disallowed operation: {name}",
+                pattern=name,
+                request_id=request_id
             )
     
     # Load dataset for RLS context
@@ -490,7 +542,12 @@ def run_sql_query(
     try:
         dataset = get_dataset(catalog, req.dataset)
     except KeyError:
-        raise HTTPException(status_code=404, detail="Dataset not found")
+        available = [ds["id"] for ds in catalog.get("datasets", [])]
+        raise dataset_not_found(
+            dataset=req.dataset,
+            available_datasets=available,
+            request_id=request_id
+        )
     
     # Get RLS configuration
     rls_config = dataset.get("rls", {})
@@ -545,9 +602,15 @@ def run_sql_query(
             "tenant": ctx.tenant
         }
         
+    except SetuPranaliError:
+        raise
     except Exception as e:
         logger.error(f"SQL query error: {e}")
-        raise HTTPException(status_code=400, detail=f"Query execution failed: {str(e)}")
+        raise internal_error(
+            message=f"Query execution failed: {str(e)}",
+            details={"sql_preview": req.sql[:100] + "..." if len(req.sql) > 100 else req.sql},
+            request_id=request_id
+        )
 
 
 # =============================================================================
@@ -591,12 +654,19 @@ def natural_language_query(
     """
     from app.nlq import translate_question, translate_simple, NLQConfig
     
+    request_id = getattr(request.state, "request_id", None)
+    
     # Load dataset schema
     catalog = load_catalog()
     try:
         dataset = get_dataset(catalog, req.dataset)
     except KeyError:
-        raise HTTPException(status_code=404, detail="Dataset not found")
+        available = [ds["id"] for ds in catalog.get("datasets", [])]
+        raise dataset_not_found(
+            dataset=req.dataset,
+            available_datasets=available,
+            request_id=request_id
+        )
     
     # Build schema for NLQ
     dataset_schema = {
@@ -612,20 +682,32 @@ def natural_language_query(
         if req.provider == "simple":
             result = translate_simple(req.question, dataset_schema)
         else:
+            api_key = os.getenv(f"{req.provider.upper()}_API_KEY")
+            if not api_key:
+                raise nlq_provider_missing(
+                    provider=req.provider,
+                    request_id=request_id
+                )
             config = NLQConfig(
                 provider=req.provider,
                 model=req.model,
-                api_key=os.getenv(f"{req.provider.upper()}_API_KEY")
+                api_key=api_key
             )
             result = translate_question(req.question, dataset_schema, config)
+    except SetuPranaliError:
+        raise
     except ImportError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Provider '{req.provider}' requires additional packages: {e}"
+        raise nlq_provider_missing(
+            provider=req.provider,
+            request_id=request_id
         )
     except Exception as e:
         logger.error(f"NLQ translation error: {e}")
-        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
+        raise nlq_translation_failed(
+            reason=str(e),
+            provider=req.provider,
+            request_id=request_id
+        )
     
     response = {
         "question": result.original_question,
@@ -694,6 +776,8 @@ def run_query(
     from app.cache import execute_with_cache, build_cache_components_from_request
     from app.guards import validate_query_request, QueryValidationError, check_result_size
     
+    request_id = getattr(request.state, "request_id", None)
+    
     # Structured logging
     logger.info(f"Query: dataset={req.dataset} tenant={ctx.tenant} dims={len(req.dimensions)} metrics={len(req.metrics)}")
     
@@ -701,14 +785,27 @@ def run_query(
     try:
         req = validate_query_request(req)
     except QueryValidationError as e:
-        raise HTTPException(status_code=400, detail=e.to_dict())
+        from app.errors import query_validation_error
+        error_dict = e.to_dict()
+        raise query_validation_error(
+            message=error_dict.get("message", str(e)),
+            field=error_dict.get("field"),
+            limit=error_dict.get("limit"),
+            actual=error_dict.get("actual"),
+            request_id=request_id
+        )
     
     # Load dataset
     catalog = load_catalog()
     try:
         dataset = get_dataset(catalog, req.dataset)
     except KeyError:
-        raise HTTPException(status_code=404, detail="Dataset not found")
+        available = [ds["id"] for ds in catalog.get("datasets", [])]
+        raise dataset_not_found(
+            dataset=req.dataset,
+            available_datasets=available,
+            request_id=request_id
+        )
     
     try:
         from app.sources import SOURCES
@@ -738,11 +835,15 @@ def run_query(
         
         return QueryResponse(dataset=req.dataset, columns=columns, rows=rows, stats=stats)
     
-    except HTTPException:
+    except SetuPranaliError:
         raise
     except Exception as e:
         logger.error(f"Query failed: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise internal_error(
+            message=f"Query execution failed: {str(e)}",
+            details={"dataset": req.dataset},
+            request_id=request_id
+        )
 
 
 # =============================================================================
@@ -750,12 +851,23 @@ def run_query(
 # =============================================================================
 
 @app.post("/v1/sources", tags=["Sources"])
-def create_source(payload: dict):
+def create_source(request: Request, payload: dict):
     """Register a new data source."""
+    request_id = getattr(request.state, "request_id", None)
     try:
         return register_source(payload)
+    except SetuPranaliError:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        from app.errors import ErrorCode
+        raise SetuPranaliError(
+            code=ErrorCode.ERR_SOURCE_INVALID,
+            message=f"Failed to register source: {str(e)}",
+            status_code=400,
+            details={"source_name": payload.get("name")},
+            suggestion="Check that all required fields are provided and credentials are valid",
+            request_id=request_id
+        )
 
 
 @app.get("/v1/sources", tags=["Sources"])
@@ -765,9 +877,11 @@ def get_sources():
 
 
 @app.post("/v1/sources/{sourceId}/test", tags=["Sources"])
-def test_source(sourceId: str):
+def test_source(request: Request, sourceId: str):
     """Test connection to a data source."""
     import time
+    
+    request_id = getattr(request.state, "request_id", None)
     
     try:
         source = get_source_with_config(sourceId)
@@ -805,11 +919,26 @@ def test_source(sourceId: str):
             }
 
     except KeyError:
-        raise HTTPException(status_code=404, detail="Source not found")
+        available = [s["name"] for s in list_sources()]
+        raise source_not_found(
+            source=sourceId,
+            available_sources=available,
+            request_id=request_id
+        )
     except ValueError as e:
-        raise HTTPException(status_code=500, detail=f"Configuration error: {str(e)}")
+        raise decryption_failed(
+            source=sourceId,
+            request_id=request_id
+        )
+    except SetuPranaliError:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Connection test failed: {str(e)}")
+        raise connection_failed(
+            source=sourceId,
+            reason=str(e),
+            engine="postgres",
+            request_id=request_id
+        )
 
 
 # =============================================================================
