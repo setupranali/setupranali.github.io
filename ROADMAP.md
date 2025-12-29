@@ -81,7 +81,7 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 | Trino/Presto | ✅ Completed | Medium |
 | SQL Server | ✅ Completed | Medium |
 | Oracle | ✅ Completed | Medium |
-| SQLite | ✋ Help Wanted | Easy |
+| SQLite | ✅ Completed | Easy |
 | TimescaleDB | ✋ Help Wanted | Easy |
 | CockroachDB | ✋ Help Wanted | Easy |
 

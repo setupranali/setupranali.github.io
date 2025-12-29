@@ -314,6 +314,14 @@ def _register_builtin_adapters():
         register_adapter("adw", ADWAdapter)  # Autonomous Data Warehouse
     except ImportError as e:
         logger.debug(f"Oracle adapter not available: {e}")
+    
+    # SQLite (built-in, no dependencies)
+    try:
+        from app.adapters.sqlite_adapter import SQLiteAdapter, SQLite3Adapter
+        register_adapter("sqlite", SQLiteAdapter)
+        register_adapter("sqlite3", SQLite3Adapter)  # Alias
+    except ImportError as e:
+        logger.debug(f"SQLite adapter not available: {e}")
 
 
 # Register on module load

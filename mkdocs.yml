@@ -162,6 +162,7 @@ nav:
       - Trino/Presto: integrations/sources/trino.md
       - SQL Server: integrations/sources/sqlserver.md
       - Oracle: integrations/sources/oracle.md
+      - SQLite: integrations/sources/sqlite.md
     - BI Tools:
       - integrations/bi-tools/index.md
       - Power BI: integrations/bi-tools/powerbi.md

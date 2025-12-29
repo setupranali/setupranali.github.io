@@ -20,6 +20,7 @@ Supported Engines:
 - Trino / Presto (federated queries)
 - SQL Server / Azure SQL
 - Oracle Database / Oracle Cloud (ATP/ADW)
+- SQLite (built-in, zero dependencies)
 """
 
 from app.adapters.base import BaseAdapter, AdapterResult, ConnectionError, QueryError
