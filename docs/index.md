@@ -196,7 +196,7 @@ data warehouse and your BI tools.
 ### 1. Start the Server
 
 ```bash
-docker run -p 8080:8080 setupranali/connector:latest
+docker run -p 8080:8080 adeygifting/connector:latest
 ```
 
 ### 2. Register a Data Source

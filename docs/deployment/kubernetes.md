@@ -12,7 +12,7 @@ helm repo add setupranali https://charts.setupranali.io
 helm repo update
 
 # Install
-helm install ubi-connector setupranali/connector \
+helm install ubi-connector adeygifting/connector \
   --set secretKey=$(openssl rand -base64 32)
 ```
 
@@ -89,7 +89,7 @@ spec:
     spec:
       containers:
         - name: connector
-          image: setupranali/connector:latest
+          image: adeygifting/connector:latest
           ports:
             - containerPort: 8080
           env:
@@ -248,7 +248,7 @@ kubectl apply -f ingress.yaml
 replicaCount: 3
 
 image:
-  repository: setupranali/connector
+  repository: adeygifting/connector
   tag: latest
 
 secretKey: ""  # Set via --set or external secret
@@ -285,7 +285,7 @@ catalog: |
 Install with values:
 
 ```bash
-helm install ubi-connector setupranali/connector -f values.yaml
+helm install ubi-connector adeygifting/connector -f values.yaml
 ```
 
 ---

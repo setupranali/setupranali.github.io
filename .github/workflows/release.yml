@@ -45,8 +45,8 @@ jobs:
           context: .
           push: true
           tags: |
-            setupranali/connector:${{ steps.version.outputs.VERSION }}
-            setupranali/connector:latest
+            adeygifting/connector:${{ steps.version.outputs.VERSION }}
+            adeygifting/connector:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

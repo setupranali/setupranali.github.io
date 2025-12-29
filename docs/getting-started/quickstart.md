@@ -14,7 +14,7 @@ Get SetuPranali running and querying data in **5 minutes**.
       --name ubi-connector \
       -p 8080:8080 \
       -e UBI_SECRET_KEY=$(openssl rand -base64 32) \
-      setupranali/connector:latest
+      adeygifting/connector:latest
     ```
 
 === "Docker Compose"
@@ -24,7 +24,7 @@ Get SetuPranali running and querying data in **5 minutes**.
     version: '3.8'
     services:
       connector:
-        image: setupranali/connector:latest
+        image: adeygifting/connector:latest
         ports:
           - "8080:8080"
         environment:

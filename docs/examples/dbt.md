@@ -130,7 +130,7 @@ version: '3.8'
 
 services:
   connector:
-    image: setupranali/connector:latest
+    image: adeygifting/connector:latest
     ports:
       - "8080:8080"
     environment:

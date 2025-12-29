@@ -61,7 +61,7 @@ It's an open-source semantic gateway that bridges your BI tools (Power BI, Table
 
 ```bash
 # Run with Docker
-docker run -p 8080:8080 setupranali/connector:latest
+docker run -p 8080:8080 adeygifting/connector:latest
 
 # Health check
 curl http://localhost:8080/v1/health

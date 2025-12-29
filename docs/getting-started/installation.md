@@ -26,7 +26,7 @@ docker run -d \
   --name ubi-connector \
   -p 8080:8080 \
   -v $(pwd)/catalog.yaml:/app/catalog.yaml \
-  setupranali/connector:latest
+  adeygifting/connector:latest
 ```
 
 ### With Environment Variables
@@ -39,7 +39,7 @@ docker run -d \
   -e REDIS_URL=redis://redis:6379 \
   -e CACHE_TTL_SECONDS=300 \
   -v $(pwd)/catalog.yaml:/app/catalog.yaml \
-  setupranali/connector:latest
+  adeygifting/connector:latest
 ```
 
 ### Docker Compose
@@ -51,7 +51,7 @@ version: '3.8'
 
 services:
   connector:
-    image: setupranali/connector:latest
+    image: adeygifting/connector:latest
     ports:
       - "8080:8080"
     environment:
@@ -111,10 +111,10 @@ helm repo add setupranali https://charts.setupranali.io
 helm repo update
 
 # Install with default values
-helm install ubi-connector setupranali/connector
+helm install ubi-connector adeygifting/connector
 
 # Or with custom values
-helm install ubi-connector setupranali/connector \
+helm install ubi-connector adeygifting/connector \
   --set replicaCount=3 \
   --set redis.enabled=true \
   --set ingress.enabled=true \

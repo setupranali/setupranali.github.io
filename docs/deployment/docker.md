@@ -11,7 +11,7 @@ docker run -d \
   --name ubi-connector \
   -p 8080:8080 \
   -e UBI_SECRET_KEY=$(openssl rand -base64 32) \
-  setupranali/connector:latest
+  adeygifting/connector:latest
 ```
 
 ---
@@ -26,7 +26,7 @@ version: '3.8'
 
 services:
   connector:
-    image: setupranali/connector:latest
+    image: adeygifting/connector:latest
     ports:
       - "8080:8080"
     environment:
@@ -42,7 +42,7 @@ version: '3.8'
 
 services:
   connector:
-    image: setupranali/connector:latest
+    image: adeygifting/connector:latest
     ports:
       - "8080:8080"
     environment:
@@ -117,7 +117,7 @@ version: '3.8'
 
 services:
   connector:
-    image: setupranali/connector:latest
+    image: adeygifting/connector:latest
     restart: unless-stopped
     ports:
       - "8080:8080"

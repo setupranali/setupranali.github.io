@@ -54,7 +54,7 @@ docker run -d \
   -p 8080:8080 \
   -e UBI_SECRET_KEY=$(openssl rand -base64 32) \
   -v $(pwd)/catalog.yaml:/app/catalog.yaml \
-  setupranali/connector:latest
+  adeygifting/connector:latest
 ```
 
 ### Docker Compose
@@ -63,7 +63,7 @@ docker run -d \
 version: '3.8'
 services:
   connector:
-    image: setupranali/connector:latest
+    image: adeygifting/connector:latest
     ports:
       - "8080:8080"
     environment:

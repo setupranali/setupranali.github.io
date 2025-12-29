@@ -249,7 +249,7 @@ Deploy multiple connector instances:
 # docker-compose.yml
 services:
   connector:
-    image: setupranali/connector:latest
+    image: adeygifting/connector:latest
     deploy:
       replicas: 3  # Scale horizontally
 ```
@@ -267,7 +267,7 @@ For strict isolation, deploy per-tenant:
 # tenant-a-compose.yml
 services:
   connector-acme:
-    image: setupranali/connector:latest
+    image: adeygifting/connector:latest
     environment:
       - TENANT_ID=acme
     volumes:

@@ -43,6 +43,6 @@ jobs:
         with:
           context: .
           push: false
-          tags: setupranali/connector:test
+          tags: adeygifting/connector:test
           cache-from: type=gha
           cache-to: type=gha,mode=max

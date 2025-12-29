@@ -42,7 +42,7 @@ Production-ready configuration for enterprise deployment.
 replicaCount: 3
 
 image:
-  repository: setupranali/connector
+  repository: adeygifting/connector
   tag: "1.0.0"
   pullPolicy: IfNotPresent
 
