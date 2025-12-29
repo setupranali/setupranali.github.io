@@ -189,9 +189,9 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 | Feature | Description | Status |
 |---------|-------------|--------|
 | Natural language queries | Ask questions in plain English | ✅ Completed (NLQ API) |
-| Auto-generated descriptions | AI-powered metric documentation | 📋 Planned |
-| Anomaly detection | Automatic alerts on metric anomalies | 📋 Planned |
-| Query suggestions | Smart autocomplete for dimensions/metrics | 📋 Planned |
+| Auto-generated descriptions | AI-powered metric documentation | ✅ Completed |
+| Anomaly detection | Automatic alerts on metric anomalies | ✅ Completed |
+| Query suggestions | Smart autocomplete for dimensions/metrics | ✅ Completed |
 
 ---
 
