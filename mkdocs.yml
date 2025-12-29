@@ -142,6 +142,7 @@ nav:
   - Guides:
     - guides/index.md
     - Defining Datasets: guides/datasets.md
+    - OAuth / OIDC: guides/oauth.md
     - Row-Level Security: guides/rls.md
     - Incremental Refresh: guides/incremental-refresh.md
     - Multi-Tenant Setup: guides/multi-tenant.md
