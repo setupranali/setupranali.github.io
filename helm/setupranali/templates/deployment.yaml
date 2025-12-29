@@ -1,0 +1,157 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "setupranali.fullname" . }}
+  labels:
+    {{- include "setupranali.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "setupranali.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "setupranali.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "setupranali.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            # Encryption key
+            - name: UBI_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "setupranali.secretName" . }}
+                  key: {{ include "setupranali.encryptionKeySecretKey" . }}
+            
+            # Redis URL
+            - name: REDIS_URL
+              value: {{ include "setupranali.redisUrl" . }}
+            
+            # Logging
+            - name: LOG_LEVEL
+              value: {{ .Values.config.logLevel | quote }}
+            
+            # CORS
+            - name: CORS_ORIGINS
+              value: {{ .Values.config.corsOrigins | quote }}
+            
+            # Safety guards
+            {{- if .Values.config.safetyGuards.enabled }}
+            - name: SAFETY_GUARDS_ENABLED
+              value: "true"
+            - name: QUERY_MAX_ROWS
+              value: {{ .Values.config.safetyGuards.maxRows | quote }}
+            - name: QUERY_MAX_DIMENSIONS
+              value: {{ .Values.config.safetyGuards.maxDimensions | quote }}
+            - name: QUERY_MAX_METRICS
+              value: {{ .Values.config.safetyGuards.maxMetrics | quote }}
+            - name: QUERY_MAX_FILTER_DEPTH
+              value: {{ .Values.config.safetyGuards.maxFilterDepth | quote }}
+            - name: QUERY_TIMEOUT_SECONDS
+              value: {{ .Values.config.safetyGuards.timeoutSeconds | quote }}
+            {{- else }}
+            - name: SAFETY_GUARDS_ENABLED
+              value: "false"
+            {{- end }}
+            
+            # Rate limiting
+            {{- if .Values.config.rateLimit.enabled }}
+            - name: RATE_LIMIT_ENABLED
+              value: "true"
+            - name: RATE_LIMIT_QUERY
+              value: {{ .Values.config.rateLimit.queryLimit | quote }}
+            - name: RATE_LIMIT_ODATA
+              value: {{ .Values.config.rateLimit.odataLimit | quote }}
+            - name: RATE_LIMIT_SOURCES
+              value: {{ .Values.config.rateLimit.sourcesLimit | quote }}
+            {{- else }}
+            - name: RATE_LIMIT_ENABLED
+              value: "false"
+            {{- end }}
+            
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          
+          volumeMounts:
+            - name: catalog
+              mountPath: /app/catalog.yaml
+              subPath: catalog.yaml
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: db
+              mountPath: /app/db
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        
+        {{- with .Values.sidecars }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      
+      volumes:
+        - name: catalog
+          configMap:
+            name: {{ include "setupranali.catalogConfigMapName" . }}
+        - name: tmp
+          emptyDir: {}
+        - name: db
+          emptyDir: {}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+

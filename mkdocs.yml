@@ -193,6 +193,7 @@ nav:
     - deployment/index.md
     - Docker: deployment/docker.md
     - Kubernetes: deployment/kubernetes.md
+    - Helm Chart: deployment/helm.md
     - Configuration: deployment/configuration.md
     - Production Checklist: deployment/production-checklist.md
   

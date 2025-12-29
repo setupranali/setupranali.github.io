@@ -1,0 +1,107 @@
+╭─────────────────────────────────────────────────────────────────╮
+│                                                                 │
+│   🌉 SetuPranali - The Bridge System for BI                     │
+│                                                                 │
+╰─────────────────────────────────────────────────────────────────╯
+
+Thank you for installing {{ .Chart.Name }} v{{ .Chart.Version }}!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 Getting Started
+━━━━━━━━━━━━━━━━━━━
+
+{{- if .Values.ingress.enabled }}
+
+1. Access SetuPranali via Ingress:
+{{- range .Values.ingress.hosts }}
+   http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+
+{{- else if contains "NodePort" .Values.service.type }}
+
+1. Get the application URL by running:
+   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "setupranali.fullname" . }})
+   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+   echo http://$NODE_IP:$NODE_PORT
+
+{{- else if contains "LoadBalancer" .Values.service.type }}
+
+1. Get the application URL by running:
+   NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+         Watch status with: kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "setupranali.fullname" . }}
+   
+   export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "setupranali.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+   echo http://$SERVICE_IP:{{ .Values.service.port }}
+
+{{- else if contains "ClusterIP" .Values.service.type }}
+
+1. Access SetuPranali by port-forwarding:
+   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "setupranali.fullname" . }} 8080:{{ .Values.service.port }}
+   
+   Then open: http://localhost:8080
+
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Verify Installation
+━━━━━━━━━━━━━━━━━━━━━━
+
+# Check pods are running
+kubectl --namespace {{ .Release.Namespace }} get pods -l "app.kubernetes.io/name={{ include "setupranali.name" . }}"
+
+# Check health endpoint
+curl http://localhost:8080/v1/health
+
+# View logs
+kubectl --namespace {{ .Release.Namespace }} logs -l "app.kubernetes.io/name={{ include "setupranali.name" . }}" -f
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Connect BI Tools
+━━━━━━━━━━━━━━━━━━━
+
+Power BI:
+  1. Get Data → OData Feed
+  2. URL: http://your-host:8080/odata/{dataset}
+  3. Header: X-API-Key = your-api-key
+
+Tableau:
+  1. Connect → Web Data Connector
+  2. URL: http://your-host:8080/wdc/
+
+REST API:
+  curl -X POST http://your-host:8080/v1/query \
+    -H "X-API-Key: your-api-key" \
+    -H "Content-Type: application/json" \
+    -d '{"dataset": "orders", "dimensions": ["city"], "metrics": ["revenue"]}'
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 Documentation
+━━━━━━━━━━━━━━━━━
+
+• Docs:   https://setupranali.github.io
+• GitHub: https://github.com/setupranali/setupranali.github.io
+
+{{- if not .Values.secrets.encryptionKey }}
+
+⚠️  WARNING: No encryption key was provided!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+An auto-generated key is being used. This key will change on every
+helm upgrade, which will make existing encrypted credentials unusable.
+
+For production, set a stable encryption key:
+
+  helm upgrade {{ .Release.Name }} setupranali/setupranali \
+    --set secrets.encryptionKey="your-base64-key"
+
+Generate a key with:
+  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+{{- end }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+

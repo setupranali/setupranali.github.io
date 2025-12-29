@@ -1,0 +1,39 @@
+apiVersion: v2
+name: setupranali
+description: SetuPranali - The Bridge System for BI. Connect Power BI, Tableau, and other BI tools to your data warehouse securely.
+
+type: application
+version: 1.1.0
+appVersion: "1.1.0"
+
+home: https://setupranali.github.io
+sources:
+  - https://github.com/setupranali/setupranali.github.io
+
+maintainers:
+  - name: SetuPranali Contributors
+    url: https://github.com/setupranali
+
+keywords:
+  - bi
+  - business-intelligence
+  - semantic-layer
+  - power-bi
+  - tableau
+  - analytics
+  - data-warehouse
+
+annotations:
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://setupranali.github.io
+    - name: GitHub
+      url: https://github.com/setupranali/setupranali.github.io
+
+dependencies:
+  - name: redis
+    version: "18.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+

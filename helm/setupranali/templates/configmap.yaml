@@ -1,0 +1,12 @@
+{{- if not .Values.catalog.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "setupranali.fullname" . }}-catalog
+  labels:
+    {{- include "setupranali.labels" . | nindent 4 }}
+data:
+  catalog.yaml: |
+    {{- .Values.catalog.content | nindent 4 }}
+{{- end }}
+
