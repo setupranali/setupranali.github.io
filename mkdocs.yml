@@ -162,6 +162,9 @@ nav:
       - integrations/bi-tools/index.md
       - Power BI: integrations/bi-tools/powerbi.md
       - Tableau: integrations/bi-tools/tableau.md
+      - Apache Superset: integrations/bi-tools/superset.md
+      - Looker Studio: integrations/bi-tools/looker-studio.md
+      - Metabase: integrations/bi-tools/metabase.md
       - REST API: integrations/bi-tools/rest-api.md
     - Modeling Layers:
       - integrations/modeling/index.md

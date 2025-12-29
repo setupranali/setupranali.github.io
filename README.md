@@ -168,9 +168,9 @@ Already evaluating semantic layers? Here's how SetuPranali differs:
 | Power BI | OData | ✅ Native |
 | Tableau | Web Data Connector | ✅ Native |
 | Excel | OData | ✅ Native |
-| Looker Studio | REST API | ✅ Supported |
-| Metabase | REST API | ✅ Supported |
-| Superset | REST API | ✅ Supported |
+| **Apache Superset** | REST API | ✅ Native |
+| **Looker Studio** | Community Connector | ✅ Native |
+| **Metabase** | HTTP Driver | ✅ Native |
 
 ---
 

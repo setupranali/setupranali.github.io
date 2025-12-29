@@ -24,6 +24,30 @@ Connect your visualization tools to SetuPranali.
 
     [:octicons-arrow-right-24: Tableau Guide](tableau.md)
 
+-   :simple-apachesuperset:{ .lg .middle } **Apache Superset**
+
+    ---
+
+    REST API and SQL Lab integration for open-source BI.
+
+    [:octicons-arrow-right-24: Superset Guide](superset.md)
+
+-   :material-google-analytics:{ .lg .middle } **Looker Studio**
+
+    ---
+
+    Community Connector for Google's free BI tool.
+
+    [:octicons-arrow-right-24: Looker Studio Guide](looker-studio.md)
+
+-   :simple-metabase:{ .lg .middle } **Metabase**
+
+    ---
+
+    HTTP driver and embedding support for open-source analytics.
+
+    [:octicons-arrow-right-24: Metabase Guide](metabase.md)
+
 -   :material-api:{ .lg .middle } **REST API**
 
     ---
@@ -42,7 +66,27 @@ Connect your visualization tools to SetuPranali.
 |----------|-------|----------|
 | **OData** | Power BI, Excel | Microsoft ecosystem, native refresh |
 | **WDC** | Tableau | Tableau Desktop/Server |
-| **REST** | Any | Custom integrations, scripts |
+| **REST** | Superset, Metabase, Looker Studio, Any | Open-source tools, custom integrations |
+| **Community Connector** | Looker Studio | Google ecosystem |
+
+---
+
+## Tool Categories
+
+### Enterprise BI
+
+| Tool | Integration | Row-Level Security | Caching |
+|------|-------------|-------------------|---------|
+| Power BI | ✅ Native OData | ✅ Automatic | ✅ Redis |
+| Tableau | ✅ WDC | ✅ Automatic | ✅ Redis |
+
+### Open Source BI
+
+| Tool | Integration | Row-Level Security | Caching |
+|------|-------------|-------------------|---------|
+| Apache Superset | ✅ REST API | ✅ Automatic | ✅ Redis |
+| Metabase | ✅ HTTP Driver | ✅ Automatic | ✅ Redis |
+| Looker Studio | ✅ Community Connector | ✅ Automatic | ✅ Redis |
 
 ---
 
@@ -56,6 +100,9 @@ All connections require an API key:
 |------|---------------|
 | Power BI | HTTP header: `X-API-Key` |
 | Tableau | WDC authentication field |
+| Superset | Database connection header |
+| Looker Studio | Connector configuration |
+| Metabase | HTTP driver header |
 | REST | Header or query parameter |
 
 ### Base URL
@@ -92,3 +139,20 @@ http://localhost:8080/wdc/
 POST http://localhost:8080/v1/query
 ```
 
+### Superset Database URI
+
+```
+setupranali+http://localhost:8080?api_key=your-key
+```
+
+### Looker Studio Connector
+
+```
+Deploy Apps Script connector and use deployment ID
+```
+
+### Metabase Connection
+
+```
+HTTP Database: http://localhost:8080/v1
+```
