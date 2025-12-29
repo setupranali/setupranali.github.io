@@ -1,0 +1,185 @@
+{
+  "SetuPranali Catalog": {
+    "prefix": "setu-catalog",
+    "body": [
+      "version: \"1.0\"",
+      "",
+      "datasets:",
+      "  - id: ${1:dataset_id}",
+      "    name: ${2:Dataset Name}",
+      "    description: ${3:Description}",
+      "    sql: SELECT * FROM ${4:table_name}",
+      "    ",
+      "    dimensions:",
+      "      - name: ${5:id}",
+      "        sql: ${5:id}",
+      "        type: string",
+      "      ",
+      "      - name: ${6:name}",
+      "        sql: ${6:name}",
+      "        type: string",
+      "    ",
+      "    metrics:",
+      "      - name: ${7:count}",
+      "        sql: COUNT(*)",
+      "        description: Total count",
+      "$0"
+    ],
+    "description": "Create a new SetuPranali catalog"
+  },
+  "Dataset": {
+    "prefix": "setu-dataset",
+    "body": [
+      "- id: ${1:dataset_id}",
+      "  name: ${2:Dataset Name}",
+      "  description: ${3:Description}",
+      "  sql: SELECT * FROM ${4:table_name}",
+      "  ",
+      "  dimensions:",
+      "    - name: ${5:dimension}",
+      "      sql: ${5:dimension}",
+      "      type: ${6|string,number,date,datetime,boolean|}",
+      "  ",
+      "  metrics:",
+      "    - name: ${7:metric}",
+      "      sql: ${8:COUNT(*)}",
+      "$0"
+    ],
+    "description": "Add a new dataset"
+  },
+  "Dimension": {
+    "prefix": "setu-dim",
+    "body": [
+      "- name: ${1:dimension_name}",
+      "  sql: ${2:column_name}",
+      "  type: ${3|string,number,date,datetime,boolean|}",
+      "  description: ${4:Description}",
+      "$0"
+    ],
+    "description": "Add a new dimension"
+  },
+  "Metric Count": {
+    "prefix": "setu-metric-count",
+    "body": [
+      "- name: ${1:count}",
+      "  sql: COUNT(*)",
+      "  description: ${2:Total count}",
+      "$0"
+    ],
+    "description": "Add a count metric"
+  },
+  "Metric Sum": {
+    "prefix": "setu-metric-sum",
+    "body": [
+      "- name: ${1:total_amount}",
+      "  sql: SUM(${2:amount})",
+      "  description: ${3:Total amount}",
+      "$0"
+    ],
+    "description": "Add a sum metric"
+  },
+  "Metric Average": {
+    "prefix": "setu-metric-avg",
+    "body": [
+      "- name: ${1:avg_value}",
+      "  sql: AVG(${2:value})",
+      "  description: ${3:Average value}",
+      "$0"
+    ],
+    "description": "Add an average metric"
+  },
+  "Metric Count Distinct": {
+    "prefix": "setu-metric-distinct",
+    "body": [
+      "- name: ${1:unique_count}",
+      "  sql: COUNT(DISTINCT ${2:column})",
+      "  description: ${3:Unique count}",
+      "$0"
+    ],
+    "description": "Add a count distinct metric"
+  },
+  "Join": {
+    "prefix": "setu-join",
+    "body": [
+      "- left_dataset: ${1:left_dataset}",
+      "  right_dataset: ${2:right_dataset}",
+      "  join_type: ${3|left,inner,right,full|}",
+      "  left_key: ${4:id}",
+      "  right_key: ${5:foreign_id}",
+      "  cardinality: ${6|many-to-one,one-to-one,one-to-many,many-to-many|}",
+      "$0"
+    ],
+    "description": "Add a semantic join"
+  },
+  "Calculated Metric": {
+    "prefix": "setu-calc-metric",
+    "body": [
+      "- name: ${1:calculated_metric}",
+      "  expression: \"{${2:numerator}} / NULLIF({${3:denominator}}, 0)\"",
+      "  description: ${4:Description}",
+      "  format: ${5|number,percent,currency|}",
+      "$0"
+    ],
+    "description": "Add a calculated metric"
+  },
+  "RLS Field": {
+    "prefix": "setu-rls",
+    "body": [
+      "rls_field: ${1:tenant_id}",
+      "$0"
+    ],
+    "description": "Add row-level security field"
+  },
+  "Time Dimension": {
+    "prefix": "setu-dim-time",
+    "body": [
+      "- name: ${1:created_at}",
+      "  sql: ${2:created_at}",
+      "  type: datetime",
+      "  description: ${3:Creation timestamp}",
+      "$0"
+    ],
+    "description": "Add a time dimension"
+  },
+  "Date Dimension": {
+    "prefix": "setu-dim-date",
+    "body": [
+      "- name: ${1:date}",
+      "  sql: DATE(${2:timestamp_column})",
+      "  type: date",
+      "  description: ${3:Date}",
+      "$0"
+    ],
+    "description": "Add a date dimension"
+  },
+  "Federation Source": {
+    "prefix": "setu-federation",
+    "body": [
+      "federation:",
+      "  enabled: true",
+      "  sources:",
+      "    - id: ${1:source_id}",
+      "      name: ${2:Source Name}",
+      "      type: ${3|postgres,mysql,bigquery,snowflake|}",
+      "      datasets:",
+      "        - ${4:dataset}",
+      "$0"
+    ],
+    "description": "Add federation configuration"
+  },
+  "Cache Configuration": {
+    "prefix": "setu-cache",
+    "body": [
+      "caching:",
+      "  enabled: true",
+      "  ttl_seconds: ${1:3600}",
+      "  prewarm:",
+      "    - dataset: ${2:dataset}",
+      "      dimensions: [${3:dimension}]",
+      "      metrics: [${4:metric}]",
+      "$0"
+    ],
+    "description": "Add cache configuration"
+  }
+}
+

@@ -165,14 +165,14 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 
 ### Ecosystem
 
-| Feature | Description |
-|---------|-------------|
-| dbt integration | Import metrics from dbt Semantic Layer |
-| Cube.js compatibility | Interoperability with Cube schemas |
-| VS Code extension | Catalog editing with IntelliSense |
-| Web UI | Admin dashboard for configuration |
-| LookML import | Import Looker/LookML models |
-| Power BI Dataset sync | Sync semantic model to Power BI Service |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| dbt integration | Import metrics from dbt Semantic Layer | ✅ Completed |
+| Cube.js compatibility | Interoperability with Cube schemas | ✅ Completed |
+| VS Code extension | Catalog editing with IntelliSense | ✅ Completed |
+| Web UI | Admin dashboard for configuration | ✅ Completed |
+| LookML import | Import Looker/LookML models | ✅ Completed |
+| Power BI Dataset sync | Sync semantic model to Power BI Service | ✅ Completed |
 
 ### Enterprise BI Features
 

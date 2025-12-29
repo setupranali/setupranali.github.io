@@ -63,6 +63,12 @@ It's an open-source semantic gateway that bridges your BI tools (Power BI, Table
 - **📊 Calculated Metrics** — Define metrics based on other metrics
 - **🧠 Smart Caching** — Intelligent cache invalidation and pre-warming
 - **🌐 Query Federation** — Query across multiple data sources as one
+- **🔄 dbt Integration** — Import metrics from dbt Semantic Layer
+- **📦 Cube.js Compatible** — Import/export Cube.js schemas
+- **👁️ LookML Import** — Import Looker/LookML models
+- **📊 Power BI Sync** — Sync to Power BI Service
+- **🖥️ VS Code Extension** — Catalog editing with IntelliSense
+- **🌐 Web UI** — Admin dashboard for configuration
 
 ---
 

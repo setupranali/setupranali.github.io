@@ -1,0 +1,192 @@
+{
+  "name": "setupranali-vscode",
+  "displayName": "SetuPranali",
+  "description": "VS Code extension for SetuPranali semantic layer - catalog editing with IntelliSense",
+  "version": "1.0.0",
+  "publisher": "setupranali",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/setupranali/setupranali.github.io"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "semantic layer",
+    "bi",
+    "analytics",
+    "power bi",
+    "tableau",
+    "yaml",
+    "catalog"
+  ],
+  "activationEvents": [
+    "onLanguage:yaml",
+    "workspaceContains:**/catalog.yaml",
+    "workspaceContains:**/catalog.yml"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "setupranali-catalog",
+        "aliases": [
+          "SetuPranali Catalog",
+          "setupranali"
+        ],
+        "extensions": [
+          ".catalog.yaml",
+          ".catalog.yml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "setupranali-catalog",
+        "scopeName": "source.setupranali",
+        "path": "./syntaxes/setupranali.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "yaml",
+        "path": "./snippets/setupranali.json"
+      },
+      {
+        "language": "setupranali-catalog",
+        "path": "./snippets/setupranali.json"
+      }
+    ],
+    "configuration": {
+      "title": "SetuPranali",
+      "properties": {
+        "setupranali.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:8080",
+          "description": "SetuPranali server URL for validation and IntelliSense"
+        },
+        "setupranali.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for SetuPranali server authentication"
+        },
+        "setupranali.enableValidation": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time catalog validation"
+        },
+        "setupranali.enableAutoComplete": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable IntelliSense for datasets, dimensions, and metrics"
+        },
+        "setupranali.catalogPath": {
+          "type": "string",
+          "default": "catalog.yaml",
+          "description": "Path to the catalog file"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "setupranali.validateCatalog",
+        "title": "SetuPranali: Validate Catalog"
+      },
+      {
+        "command": "setupranali.previewQuery",
+        "title": "SetuPranali: Preview Query"
+      },
+      {
+        "command": "setupranali.syncWithServer",
+        "title": "SetuPranali: Sync with Server"
+      },
+      {
+        "command": "setupranali.generateFromSource",
+        "title": "SetuPranali: Generate Catalog from Data Source"
+      },
+      {
+        "command": "setupranali.importDbt",
+        "title": "SetuPranali: Import from dbt"
+      },
+      {
+        "command": "setupranali.importLookML",
+        "title": "SetuPranali: Import from LookML"
+      },
+      {
+        "command": "setupranali.importCube",
+        "title": "SetuPranali: Import from Cube.js"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceFilename =~ /catalog\\.ya?ml$/",
+          "command": "setupranali.validateCatalog",
+          "group": "setupranali"
+        },
+        {
+          "when": "resourceFilename =~ /catalog\\.ya?ml$/",
+          "command": "setupranali.previewQuery",
+          "group": "setupranali"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceFilename =~ /catalog\\.ya?ml$/",
+          "command": "setupranali.validateCatalog",
+          "group": "setupranali"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "setupranaliExplorer",
+          "name": "SetuPranali Catalog",
+          "when": "workspaceContains:**/catalog.yaml || workspaceContains:**/catalog.yml"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "setupranali",
+          "title": "SetuPranali",
+          "icon": "images/icon.svg"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "^18.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.50.0",
+    "typescript": "^5.2.0",
+    "@vscode/vsce": "^2.21.0"
+  },
+  "dependencies": {
+    "yaml": "^2.3.0",
+    "axios": "^1.6.0"
+  }
+}
+
