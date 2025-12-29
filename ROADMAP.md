@@ -93,7 +93,7 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 | Looker Studio | Community Connector | ✅ Completed |
 | Metabase | HTTP driver support | ✅ Completed |
 | Grafana | Data source plugin | ✅ Completed |
-| Qlik Sense | REST connector | 📋 Planned |
+| Qlik Sense | REST connector | ✅ Completed |
 | Mode Analytics | REST integration | 📋 Planned |
 
 ### Priority 4: Published Connectors & SDKs

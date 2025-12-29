@@ -56,6 +56,14 @@ Connect your visualization tools to SetuPranali.
 
     [:octicons-arrow-right-24: Grafana Guide](grafana.md)
 
+-   :simple-qlik:{ .lg .middle } **Qlik Sense**
+
+    ---
+
+    REST connector integration for Qlik Sense and Qlik Cloud.
+
+    [:octicons-arrow-right-24: Qlik Sense Guide](qlik.md)
+
 -   :material-api:{ .lg .middle } **REST API**
 
     ---
@@ -88,6 +96,7 @@ Connect your visualization tools to SetuPranali.
 |------|-------------|-------------------|---------|
 | Power BI | ✅ Native OData | ✅ Automatic | ✅ Redis |
 | Tableau | ✅ WDC | ✅ Automatic | ✅ Redis |
+| Qlik Sense | ✅ REST Connector | ✅ Automatic | ✅ Redis |
 
 ### Open Source BI
 
