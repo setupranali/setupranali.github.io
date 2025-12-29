@@ -1,0 +1,57 @@
+{
+  "name": "@setupranali/client",
+  "version": "1.0.0",
+  "description": "JavaScript/TypeScript SDK for SetuPranali semantic analytics layer",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/",
+    "test": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "analytics",
+    "bi",
+    "business-intelligence",
+    "semantic-layer",
+    "data",
+    "power-bi",
+    "tableau",
+    "superset",
+    "metabase"
+  ],
+  "author": "SetuPranali Contributors",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/setupranali/setupranali.github.io.git"
+  },
+  "homepage": "https://setupranali.github.io",
+  "bugs": {
+    "url": "https://github.com/setupranali/setupranali.github.io/issues"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
