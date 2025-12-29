@@ -331,6 +331,15 @@ def _register_builtin_adapters():
         register_adapter("tsdb", TSDBAdapter)  # Short alias
     except ImportError as e:
         logger.debug(f"TimescaleDB adapter not available: {e}")
+    
+    # CockroachDB (distributed SQL)
+    try:
+        from app.adapters.cockroachdb_adapter import CockroachDBAdapter, CRDBAdapter, RoachAdapter
+        register_adapter("cockroachdb", CockroachDBAdapter)
+        register_adapter("cockroach", CockroachDBAdapter)  # Alias
+        register_adapter("crdb", CRDBAdapter)  # Short alias
+    except ImportError as e:
+        logger.debug(f"CockroachDB adapter not available: {e}")
 
 
 # Register on module load

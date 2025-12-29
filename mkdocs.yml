@@ -164,6 +164,7 @@ nav:
       - Oracle: integrations/sources/oracle.md
       - SQLite: integrations/sources/sqlite.md
       - TimescaleDB: integrations/sources/timescaledb.md
+      - CockroachDB: integrations/sources/cockroachdb.md
     - BI Tools:
       - integrations/bi-tools/index.md
       - Power BI: integrations/bi-tools/powerbi.md

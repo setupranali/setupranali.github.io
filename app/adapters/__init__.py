@@ -22,6 +22,7 @@ Supported Engines:
 - Oracle Database / Oracle Cloud (ATP/ADW)
 - SQLite (built-in, zero dependencies)
 - TimescaleDB (time-series on PostgreSQL)
+- CockroachDB (distributed SQL)
 """
 
 from app.adapters.base import BaseAdapter, AdapterResult, ConnectionError, QueryError
