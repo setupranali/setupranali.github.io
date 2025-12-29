@@ -146,6 +146,7 @@ nav:
     - Incremental Refresh: guides/incremental-refresh.md
     - Multi-Tenant Setup: guides/multi-tenant.md
     - API Keys: guides/api-keys.md
+    - CLI Tool: guides/cli.md
   
   - Integrations:
     - integrations/index.md

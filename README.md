@@ -58,6 +58,7 @@ It's an open-source semantic gateway that bridges your BI tools (Power BI, Table
 - **🐍 Python SDK** — `pip install setupranali`
 - **📦 JavaScript SDK** — `npm install @setupranali/client`
 - **📓 Jupyter Widget** — Interactive widget for notebooks
+- **🖥️ CLI Tool** — Manage everything from the command line
 
 ---
 
