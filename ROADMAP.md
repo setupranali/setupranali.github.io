@@ -144,11 +144,11 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 |---------|-------------|--------|
 | Metabase Native Driver | Official Metabase driver plugin | ✅ Completed |
 | Jupyter Widget | Interactive widget for notebooks | ✅ Completed |
-| Superset Database Plugin | Native SQLAlchemy dialect `superset://` | 📋 Planned |
-| Metabase Marketplace Listing | Certified driver listing | 📋 Planned |
-| Looker Studio Published Connector | Listed in Google connector gallery | 📋 Planned |
-| Excel Add-in | Native Excel add-in for direct queries | 📋 Planned |
-| Google Sheets Connector | Apps Script add-on for Sheets | 📋 Planned |
+| Superset Database Plugin | Native SQLAlchemy dialect `superset://` | ✅ Completed |
+| Metabase Marketplace Listing | Certified driver listing | ✅ Completed |
+| Looker Studio Published Connector | Listed in Google connector gallery | ✅ Completed |
+| Excel Add-in | Native Excel add-in for direct queries | ✅ Completed |
+| Google Sheets Connector | Apps Script add-on for Sheets | ✅ Completed |
 
 ---
 

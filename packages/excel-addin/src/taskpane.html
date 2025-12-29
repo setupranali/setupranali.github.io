@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SetuPranali Query Builder</title>
+    
+    <!-- Office JavaScript API -->
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
+    
+    <style>
+        :root {
+            --primary-color: #0078d4;
+            --secondary-color: #106ebe;
+            --background: #f3f2f1;
+            --surface: #ffffff;
+            --text: #323130;
+            --text-secondary: #605e5c;
+            --border: #edebe9;
+            --success: #107c10;
+            --error: #a4262c;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 14px;
+            color: var(--text);
+            background: var(--background);
+            padding: 16px;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .header img {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .card {
+            background: var(--surface);
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1.6px 3.6px 0 rgba(0,0,0,0.132);
+        }
+        
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 14px;
+            color: var(--text);
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            max-height: 120px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--secondary-color);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+        
+        .btn-block {
+            width: 100%;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 12px;
+        }
+        
+        .status.success {
+            background: #dff6dd;
+            color: var(--success);
+        }
+        
+        .status.error {
+            background: #fde7e9;
+            color: var(--error);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+        
+        .tab {
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+        
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://setupranali.github.io/assets/logo.svg" alt="SetuPranali">
+        <h1>SetuPranali</h1>
+    </div>
+    
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" data-tab="query">Query</button>
+        <button class="tab" data-tab="settings">Settings</button>
+    </div>
+    
+    <!-- Query Tab -->
+    <div id="query-tab" class="tab-content active">
+        <!-- Dataset Selection -->
+        <div class="card">
+            <div class="card-title">Dataset</div>
+            <div class="form-group">
+                <select id="dataset-select">
+                    <option value="">Select dataset...</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Dimensions -->
+        <div class="card" id="dimensions-card">
+            <div class="card-title">Dimensions</div>
+            <div class="checkbox-group" id="dimensions-list">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+        
+        <!-- Metrics -->
+        <div class="card" id="metrics-card">
+            <div class="card-title">Metrics</div>
+            <div class="checkbox-group" id="metrics-list">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="card">
+            <div class="card-title">Filters (Optional)</div>
+            <div class="form-group">
+                <label>Date Range</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="date" id="date-from" placeholder="From">
+                    <input type="date" id="date-to" placeholder="To">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Limit Rows</label>
+                <input type="number" id="limit" value="1000" min="1" max="100000">
+            </div>
+        </div>
+        
+        <!-- Execute Button -->
+        <button class="btn btn-primary btn-block" id="run-query" disabled>
+            <span class="loading hidden"></span>
+            <span>Run Query</span>
+        </button>
+        
+        <!-- Status -->
+        <div id="status" class="status hidden"></div>
+    </div>
+    
+    <!-- Settings Tab -->
+    <div id="settings-tab" class="tab-content">
+        <div class="card">
+            <div class="card-title">Connection Settings</div>
+            <div class="form-group">
+                <label>Server URL</label>
+                <input type="url" id="server-url" placeholder="https://your-server.com">
+            </div>
+            <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="api-key" placeholder="sk_live_xxxxx">
+            </div>
+            <button class="btn btn-primary btn-block" id="test-connection">
+                Test Connection
+            </button>
+            <button class="btn btn-secondary btn-block" id="save-settings" style="margin-top: 8px;">
+                Save Settings
+            </button>
+        </div>
+    </div>
+    
+    <script src="taskpane.js"></script>
+</body>
+</html>
+

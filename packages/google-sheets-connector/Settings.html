@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 14px;
+      padding: 24px;
+      color: #202124;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #5f6368;
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #4285f4;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 24px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+    .btn-primary {
+      background: #4285f4;
+      color: white;
+    }
+    .btn-primary:hover { background: #3367d6; }
+    .btn-secondary {
+      background: white;
+      color: #4285f4;
+      border: 1px solid #dadce0;
+    }
+    .btn-secondary:hover { background: #f1f3f4; }
+    .buttons {
+      margin-top: 24px;
+    }
+    .status {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .status.success { background: #e6f4ea; color: #137333; }
+    .status.error { background: #fce8e6; color: #c5221f; }
+  </style>
+</head>
+<body>
+  <h2>Connection Settings</h2>
+  
+  <div class="form-group">
+    <label>Server URL</label>
+    <input type="url" id="server-url" placeholder="https://your-server.com">
+  </div>
+  
+  <div class="form-group">
+    <label>API Key</label>
+    <input type="password" id="api-key" placeholder="sk_live_xxxxx">
+  </div>
+  
+  <div class="buttons">
+    <button class="btn btn-primary" id="save-btn">Save</button>
+    <button class="btn btn-secondary" id="test-btn">Test Connection</button>
+  </div>
+  
+  <div id="status" class="status" style="display:none;"></div>
+  
+  <script>
+    // Load existing settings
+    google.script.run
+      .withSuccessHandler(function(settings) {
+        document.getElementById('server-url').value = settings.serverUrl || '';
+        document.getElementById('api-key').value = settings.apiKey || '';
+      })
+      .getSettings();
+    
+    // Save settings
+    document.getElementById('save-btn').addEventListener('click', function() {
+      var serverUrl = document.getElementById('server-url').value.trim();
+      var apiKey = document.getElementById('api-key').value.trim();
+      
+      if (!serverUrl || !apiKey) {
+        showStatus('error', 'Please fill in all fields');
+        return;
+      }
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            showStatus('success', 'Settings saved successfully');
+          }
+        })
+        .withFailureHandler(function(error) {
+          showStatus('error', error.message);
+        })
+        .saveSettings(serverUrl, apiKey);
+    });
+    
+    // Test connection
+    document.getElementById('test-btn').addEventListener('click', function() {
+      // Save first
+      var serverUrl = document.getElementById('server-url').value.trim();
+      var apiKey = document.getElementById('api-key').value.trim();
+      
+      google.script.run
+        .withSuccessHandler(function() {
+          // Now test
+          google.script.run
+            .withSuccessHandler(function(result) {
+              if (result.success) {
+                showStatus('success', result.message);
+              } else {
+                showStatus('error', result.error);
+              }
+            })
+            .withFailureHandler(function(error) {
+              showStatus('error', error.message);
+            })
+            .testConnection();
+        })
+        .saveSettings(serverUrl, apiKey);
+    });
+    
+    function showStatus(type, message) {
+      var status = document.getElementById('status');
+      status.className = 'status ' + type;
+      status.textContent = message;
+      status.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
+

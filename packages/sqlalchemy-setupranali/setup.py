@@ -54,6 +54,9 @@ setup(
             "setupranali = sqlalchemy_setupranali.dialect:SetuPranaliDialect",
             "setupranali.http = sqlalchemy_setupranali.dialect:SetuPranaliDialect",
             "setupranali.https = sqlalchemy_setupranali.dialect:SetuPranaliDialect",
+            "superset = sqlalchemy_setupranali.superset:SupersetDialect",
+            "superset.http = sqlalchemy_setupranali.superset:SupersetHTTPDialect",
+            "superset.https = sqlalchemy_setupranali.superset:SupersetHTTPSDialect",
         ],
     },
     keywords=[

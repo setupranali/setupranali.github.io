@@ -179,6 +179,8 @@ nav:
       - Apache Superset: integrations/bi-tools/superset.md
       - Looker Studio: integrations/bi-tools/looker-studio.md
       - Metabase: integrations/bi-tools/metabase.md
+      - Excel: integrations/bi-tools/excel.md
+      - Google Sheets: integrations/bi-tools/google-sheets.md
       - REST API: integrations/bi-tools/rest-api.md
     - Modeling Layers:
       - integrations/modeling/index.md

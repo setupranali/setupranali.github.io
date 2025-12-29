@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      font-size: 14px;
+      padding: 16px;
+      color: #202124;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: #5f6368;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    select, input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: #4285f4;
+    }
+    .checkbox-list {
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      padding: 8px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+    }
+    .checkbox-item input {
+      width: auto;
+      margin: 0;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 24px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary {
+      background: #4285f4;
+      color: white;
+      width: 100%;
+    }
+    .btn-primary:hover { background: #3367d6; }
+    .btn-primary:disabled {
+      background: #dadce0;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .status.success { background: #e6f4ea; color: #137333; }
+    .status.error { background: #fce8e6; color: #c5221f; }
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #5f6368;
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #dadce0;
+      border-top-color: #4285f4;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    Loading...
+  </div>
+  
+  <div id="content">
+    <!-- Dataset Selection -->
+    <div class="section">
+      <div class="section-title">Dataset</div>
+      <select id="dataset-select">
+        <option value="">Select dataset...</option>
+      </select>
+    </div>
+    
+    <!-- Dimensions -->
+    <div class="section" id="dimensions-section" style="display:none;">
+      <div class="section-title">Dimensions</div>
+      <div class="checkbox-list" id="dimensions-list"></div>
+    </div>
+    
+    <!-- Metrics -->
+    <div class="section" id="metrics-section" style="display:none;">
+      <div class="section-title">Metrics</div>
+      <div class="checkbox-list" id="metrics-list"></div>
+    </div>
+    
+    <!-- Options -->
+    <div class="section" id="options-section" style="display:none;">
+      <div class="section-title">Options</div>
+      <input type="number" id="limit" placeholder="Row limit (default: 1000)" value="1000">
+    </div>
+    
+    <!-- Run Button -->
+    <button class="btn btn-primary" id="run-btn" disabled>Run Query</button>
+    
+    <!-- Status -->
+    <div id="status" class="status" style="display:none;"></div>
+  </div>
+  
+  <script>
+    // Load datasets on init
+    google.script.run
+      .withSuccessHandler(function(datasets) {
+        var select = document.getElementById('dataset-select');
+        datasets.forEach(function(ds) {
+          var opt = document.createElement('option');
+          opt.value = ds.id;
+          opt.textContent = ds.name || ds.id;
+          select.appendChild(opt);
+        });
+      })
+      .withFailureHandler(function(error) {
+        showStatus('error', 'Failed to load datasets: ' + error.message);
+      })
+      .getDatasets();
+    
+    // Dataset change handler
+    document.getElementById('dataset-select').addEventListener('change', function() {
+      var datasetId = this.value;
+      if (!datasetId) {
+        document.getElementById('dimensions-section').style.display = 'none';
+        document.getElementById('metrics-section').style.display = 'none';
+        document.getElementById('options-section').style.display = 'none';
+        document.getElementById('run-btn').disabled = true;
+        return;
+      }
+      
+      showLoading(true);
+      
+      google.script.run
+        .withSuccessHandler(function(schema) {
+          showLoading(false);
+          
+          // Populate dimensions
+          var dimList = document.getElementById('dimensions-list');
+          dimList.innerHTML = '';
+          (schema.dimensions || []).forEach(function(dim) {
+            dimList.innerHTML += '<label class="checkbox-item"><input type="checkbox" name="dimension" value="' + dim.name + '"> ' + dim.name + '</label>';
+          });
+          
+          // Populate metrics
+          var metList = document.getElementById('metrics-list');
+          metList.innerHTML = '';
+          (schema.metrics || []).forEach(function(met) {
+            metList.innerHTML += '<label class="checkbox-item"><input type="checkbox" name="metric" value="' + met.name + '" checked> ' + met.name + '</label>';
+          });
+          
+          document.getElementById('dimensions-section').style.display = 'block';
+          document.getElementById('metrics-section').style.display = 'block';
+          document.getElementById('options-section').style.display = 'block';
+          document.getElementById('run-btn').disabled = false;
+        })
+        .withFailureHandler(function(error) {
+          showLoading(false);
+          showStatus('error', 'Failed to load schema: ' + error.message);
+        })
+        .getDatasetSchema(datasetId);
+    });
+    
+    // Run query
+    document.getElementById('run-btn').addEventListener('click', function() {
+      var dataset = document.getElementById('dataset-select').value;
+      var dimensions = getCheckedValues('dimension');
+      var metrics = getCheckedValues('metric');
+      var limit = parseInt(document.getElementById('limit').value) || 1000;
+      
+      if (metrics.length === 0) {
+        showStatus('error', 'Please select at least one metric');
+        return;
+      }
+      
+      showLoading(true);
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showLoading(false);
+          if (result.success) {
+            showStatus('success', 'Inserted ' + result.rows + ' rows');
+          } else {
+            showStatus('error', result.error || 'Query failed');
+          }
+        })
+        .withFailureHandler(function(error) {
+          showLoading(false);
+          showStatus('error', error.message);
+        })
+        .runQueryToSheet({
+          dataset: dataset,
+          dimensions: dimensions,
+          metrics: metrics,
+          limit: limit
+        });
+    });
+    
+    function getCheckedValues(name) {
+      var checked = document.querySelectorAll('input[name="' + name + '"]:checked');
+      return Array.from(checked).map(function(cb) { return cb.value; });
+    }
+    
+    function showLoading(show) {
+      document.getElementById('loading').style.display = show ? 'block' : 'none';
+      document.getElementById('content').style.opacity = show ? '0.5' : '1';
+    }
+    
+    function showStatus(type, message) {
+      var status = document.getElementById('status');
+      status.className = 'status ' + type;
+      status.textContent = message;
+      status.style.display = 'block';
+      setTimeout(function() { status.style.display = 'none'; }, 5000);
+    }
+  </script>
+</body>
+</html>
+
