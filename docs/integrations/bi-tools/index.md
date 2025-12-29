@@ -44,7 +44,7 @@ Connect your visualization tools to SetuPranali.
 
     ---
 
-    HTTP driver and embedding support for open-source analytics.
+    **Native driver plugin** for seamless Metabase integration.
 
     [:octicons-arrow-right-24: Metabase Guide](metabase.md)
 
@@ -66,7 +66,8 @@ Connect your visualization tools to SetuPranali.
 |----------|-------|----------|
 | **OData** | Power BI, Excel | Microsoft ecosystem, native refresh |
 | **WDC** | Tableau | Tableau Desktop/Server |
-| **REST** | Superset, Metabase, Looker Studio, Any | Open-source tools, custom integrations |
+| **Native Driver** | Metabase | Seamless Metabase integration |
+| **REST** | Superset, Looker Studio, Any | Open-source tools, custom integrations |
 | **Community Connector** | Looker Studio | Google ecosystem |
 
 ---
@@ -85,7 +86,7 @@ Connect your visualization tools to SetuPranali.
 | Tool | Integration | Row-Level Security | Caching |
 |------|-------------|-------------------|---------|
 | Apache Superset | ✅ REST API | ✅ Automatic | ✅ Redis |
-| Metabase | ✅ HTTP Driver | ✅ Automatic | ✅ Redis |
+| Metabase | ✅ **Native Driver** | ✅ Automatic | ✅ Redis |
 | Looker Studio | ✅ Community Connector | ✅ Automatic | ✅ Redis |
 
 ---

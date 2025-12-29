@@ -44,7 +44,7 @@ It's an open-source semantic gateway that bridges your BI tools (Power BI, Table
 
 ## ✨ Features
 
-- **🔌 Native BI Integration** — OData for Power BI, Web Data Connector for Tableau
+- **🔌 Native BI Integration** — OData for Power BI, WDC for Tableau, Native Metabase driver
 - **📐 Semantic Layer** — Define dimensions, metrics, and relationships in YAML
 - **🛡️ Row-Level Security** — Automatic tenant isolation based on API key
 - **⚡ Query Caching** — Redis-backed with tenant isolation
@@ -52,6 +52,12 @@ It's an open-source semantic gateway that bridges your BI tools (Power BI, Table
 - **🗄️ Multi-Source** — PostgreSQL, Snowflake, BigQuery, Databricks, ClickHouse, and more
 - **🔐 Encrypted Credentials** — Database credentials encrypted at rest (Fernet/AES)
 - **📈 Rate Limiting** — Protect your data warehouse from runaway queries
+- **🔀 GraphQL API** — Flexible, typed query interface
+- **📝 SQL with RLS** — Direct SQL queries with automatic Row-Level Security
+- **💬 Natural Language** — Ask questions in plain English (NLQ API)
+- **🐍 Python SDK** — `pip install setupranali`
+- **📦 JavaScript SDK** — `npm install @setupranali/client`
+- **📓 Jupyter Widget** — Interactive widget for notebooks
 
 ---
 
@@ -168,9 +174,21 @@ Already evaluating semantic layers? Here's how SetuPranali differs:
 | Power BI | OData | ✅ Native |
 | Tableau | Web Data Connector | ✅ Native |
 | Excel | OData | ✅ Native |
-| **Apache Superset** | REST API | ✅ Native |
-| **Looker Studio** | Community Connector | ✅ Native |
-| **Metabase** | HTTP Driver | ✅ Native |
+| **Apache Superset** | REST API | ✅ Supported |
+| **Looker Studio** | Community Connector | ✅ Supported |
+| **Metabase** | **Native Driver** | ✅ Native |
+
+### APIs & SDKs
+
+| Interface | Description | Status |
+|-----------|-------------|--------|
+| Query API | Semantic queries | ✅ Stable |
+| GraphQL API | Typed, flexible queries | ✅ Stable |
+| SQL API | SQL with auto-RLS | ✅ Stable |
+| NLQ API | Natural language queries | ✅ Beta |
+| Python SDK | Official client library | ✅ Stable |
+| JavaScript SDK | Node.js/Browser client | ✅ Stable |
+| Jupyter Widget | Interactive notebooks | ✅ Stable |
 
 ---
 
@@ -249,8 +267,8 @@ See our [ROADMAP.md](ROADMAP.md) for planned features and how to influence prior
 - [ ] 🔐 SSO/SAML authentication
 - [ ] 📊 Query analytics dashboard
 - [ ] 🔄 Trino/Presto adapter
-- [ ] 📱 GraphQL API
-- [ ] 🌐 Metabase native connector
+- [ ] 📦 Published to PyPI & npm
+- [ ] 🛒 Metabase Marketplace listing
 
 ---
 

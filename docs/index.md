@@ -140,7 +140,7 @@ data warehouse and your BI tools.
     No database credentials in BI tools.
 
 :material-sync:{ .feature-icon } **BI Agnostic**
-:   Native Power BI (OData), Tableau (WDC), and REST API support.
+:   Native Power BI (OData), Tableau (WDC), Metabase driver, and REST API.
     Switch tools without rebuilding your semantic layer.
 
 :material-lightning-bolt:{ .feature-icon } **High Performance**
@@ -185,9 +185,23 @@ data warehouse and your BI tools.
 | Power BI | OData | ✅ Native |
 | Tableau | Web Data Connector | ✅ Native |
 | Excel | OData | ✅ Native |
-| Looker Studio | REST API | ✅ Supported |
-| Metabase | REST API | ✅ Supported |
+| Apache Superset | REST API | ✅ Supported |
+| Looker Studio | Community Connector | ✅ Supported |
+| Metabase | **Native Driver** | ✅ Native |
 | Any REST Client | REST API | ✅ Supported |
+
+### APIs & SDKs
+
+| Interface | Description | Status |
+|-----------|-------------|--------|
+| Query API | Semantic queries with dimensions & metrics | ✅ Stable |
+| GraphQL API | Flexible, typed query interface | ✅ Stable |
+| SQL API | Direct SQL with automatic RLS | ✅ Stable |
+| NLQ API | Natural language to query | ✅ Beta |
+| OData API | Power BI native protocol | ✅ Stable |
+| Python SDK | `pip install setupranali` | ✅ Stable |
+| JavaScript SDK | `npm install @setupranali/client` | ✅ Stable |
+| Jupyter Widget | Interactive notebook widget | ✅ Stable |
 
 ---
 

@@ -25,20 +25,28 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 
 ---
 
-## 📊 Current Status: v1.0 (Stable)
+## 📊 Current Status: v1.1 (Stable)
 
 ### ✅ What's Working Today
 
 | Feature | Status |
 |---------|--------|
 | Semantic Query API | ✅ Stable |
+| GraphQL API | ✅ Stable |
+| SQL API with RLS | ✅ Stable |
+| NLQ (Natural Language Query) API | ✅ Beta |
+| Schema Introspection API | ✅ Stable |
 | Power BI OData Integration | ✅ Stable |
 | Tableau Web Data Connector | ✅ Stable |
+| Metabase Native Driver | ✅ Stable |
 | Row-Level Security | ✅ Stable |
 | Query Caching (Redis) | ✅ Stable |
 | Incremental Refresh | ✅ Stable |
 | Rate Limiting | ✅ Stable |
 | Encrypted Credentials | ✅ Stable |
+| Python SDK | ✅ Stable |
+| JavaScript SDK | ✅ Stable |
+| Jupyter Widget | ✅ Stable |
 
 ### ✅ Supported Data Sources
 
@@ -121,25 +129,26 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 
 ### API Enhancements
 
-| Feature | Description |
-|---------|-------------|
-| GraphQL API | Alternative query interface for modern tools |
-| Streaming responses | Large result set streaming via SSE/WebSocket |
-| Batch queries | Execute multiple queries in one request |
-| Schema introspection API | Enhanced metadata for auto-discovery |
-| JSON:API compliance | Standardized REST response format |
-| SQL endpoint | Direct SQL pass-through with RLS |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| GraphQL API | Alternative query interface for modern tools | ✅ Completed |
+| Schema introspection API | Enhanced metadata for auto-discovery | ✅ Completed |
+| SQL endpoint | Direct SQL pass-through with RLS | ✅ Completed |
+| Streaming responses | Large result set streaming via SSE/WebSocket | 📋 Planned |
+| Batch queries | Execute multiple queries in one request | 📋 Planned |
+| JSON:API compliance | Standardized REST response format | 📋 Planned |
 
 ### BI Tool Deep Integrations
 
-| Feature | Description |
-|---------|-------------|
-| Superset Database Plugin | Native SQLAlchemy dialect `superset://` |
-| Metabase Certified Driver | Official driver in Metabase marketplace |
-| Looker Studio Published Connector | Listed in Google connector gallery |
-| Excel Add-in | Native Excel add-in for direct queries |
-| Google Sheets Connector | Apps Script add-on for Sheets |
-| Jupyter Widget | Interactive widget for notebooks |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| Metabase Native Driver | Official Metabase driver plugin | ✅ Completed |
+| Jupyter Widget | Interactive widget for notebooks | ✅ Completed |
+| Superset Database Plugin | Native SQLAlchemy dialect `superset://` | 📋 Planned |
+| Metabase Marketplace Listing | Certified driver listing | 📋 Planned |
+| Looker Studio Published Connector | Listed in Google connector gallery | 📋 Planned |
+| Excel Add-in | Native Excel add-in for direct queries | 📋 Planned |
+| Google Sheets Connector | Apps Script add-on for Sheets | 📋 Planned |
 
 ---
 
@@ -177,12 +186,12 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 
 ### AI/ML Integration
 
-| Feature | Description |
-|---------|-------------|
-| Natural language queries | Ask questions in plain English |
-| Auto-generated descriptions | AI-powered metric documentation |
-| Anomaly detection | Automatic alerts on metric anomalies |
-| Query suggestions | Smart autocomplete for dimensions/metrics |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| Natural language queries | Ask questions in plain English | ✅ Completed (NLQ API) |
+| Auto-generated descriptions | AI-powered metric documentation | 📋 Planned |
+| Anomaly detection | Automatic alerts on metric anomalies | 📋 Planned |
+| Query suggestions | Smart autocomplete for dimensions/metrics | 📋 Planned |
 
 ---
 
