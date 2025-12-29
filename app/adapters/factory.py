@@ -322,6 +322,15 @@ def _register_builtin_adapters():
         register_adapter("sqlite3", SQLite3Adapter)  # Alias
     except ImportError as e:
         logger.debug(f"SQLite adapter not available: {e}")
+    
+    # TimescaleDB (PostgreSQL extension for time-series)
+    try:
+        from app.adapters.timescaledb_adapter import TimescaleDBAdapter, TSDBAdapter, TimeScaleAdapter
+        register_adapter("timescaledb", TimescaleDBAdapter)
+        register_adapter("timescale", TimescaleDBAdapter)  # Alias
+        register_adapter("tsdb", TSDBAdapter)  # Short alias
+    except ImportError as e:
+        logger.debug(f"TimescaleDB adapter not available: {e}")
 
 
 # Register on module load

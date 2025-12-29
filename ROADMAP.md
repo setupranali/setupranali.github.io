@@ -82,7 +82,7 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 | SQL Server | ✅ Completed | Medium |
 | Oracle | ✅ Completed | Medium |
 | SQLite | ✅ Completed | Easy |
-| TimescaleDB | ✋ Help Wanted | Easy |
+| TimescaleDB | ✅ Completed | Easy |
 | CockroachDB | ✋ Help Wanted | Easy |
 
 ### Priority 3: BI Tool Integrations

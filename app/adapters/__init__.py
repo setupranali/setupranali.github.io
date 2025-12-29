@@ -21,6 +21,7 @@ Supported Engines:
 - SQL Server / Azure SQL
 - Oracle Database / Oracle Cloud (ATP/ADW)
 - SQLite (built-in, zero dependencies)
+- TimescaleDB (time-series on PostgreSQL)
 """
 
 from app.adapters.base import BaseAdapter, AdapterResult, ConnectionError, QueryError
