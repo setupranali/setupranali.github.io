@@ -122,10 +122,10 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 
 | Feature | Description |
 |---------|-------------|
-| Query analytics | Dashboard for query patterns and performance |
-| Prometheus metrics | Export metrics for monitoring |
-| OpenTelemetry | Distributed tracing support |
-| Audit logs | Full audit trail of all queries |
+| Query analytics | Dashboard for query patterns and performance | ✅ Completed |
+| Prometheus metrics | Export metrics for monitoring | ✅ Completed |
+| OpenTelemetry | Distributed tracing support | ✅ Completed |
+| Audit logs | Full audit trail of all queries | ✅ Completed |
 
 ### API Enhancements
 

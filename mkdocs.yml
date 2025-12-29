@@ -145,6 +145,7 @@ nav:
     - OAuth / OIDC: guides/oauth.md
     - SAML SSO: guides/saml.md
     - Fine-Grained Permissions: guides/fine-grained-permissions.md
+    - Observability: guides/observability.md
     - Row-Level Security: guides/rls.md
     - Incremental Refresh: guides/incremental-refresh.md
     - Multi-Tenant Setup: guides/multi-tenant.md
