@@ -175,9 +175,18 @@ nav:
     - api-reference/index.md
     - Query API: api-reference/query.md
     - GraphQL API: api-reference/graphql.md
+    - SQL API: api-reference/sql.md
+    - NLQ (Natural Language): api-reference/nlq.md
+    - Schema Introspection: api-reference/introspection.md
     - OData API: api-reference/odata.md
     - Sources API: api-reference/sources.md
     - Authentication: api-reference/authentication.md
+  
+  - SDKs & Libraries:
+    - sdks/index.md
+    - Python SDK: sdks/python.md
+    - JavaScript SDK: sdks/javascript.md
+    - Jupyter Widget: sdks/jupyter.md
   
   - Deployment:
     - deployment/index.md
