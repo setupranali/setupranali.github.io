@@ -19,6 +19,7 @@ Supported Engines:
 - ClickHouse
 - Trino / Presto (federated queries)
 - SQL Server / Azure SQL
+- Oracle Database / Oracle Cloud (ATP/ADW)
 """
 
 from app.adapters.base import BaseAdapter, AdapterResult, ConnectionError, QueryError

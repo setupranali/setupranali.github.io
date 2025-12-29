@@ -303,6 +303,17 @@ def _register_builtin_adapters():
         register_adapter("azure-sql", AzureSQLAdapter)  # Another Azure alias
     except ImportError as e:
         logger.debug(f"SQL Server adapter not available: {e}")
+    
+    # Oracle Database / Oracle Cloud
+    try:
+        from app.adapters.oracle_adapter import OracleAdapter, OracleDBAdapter, OCIAdapter, ATPAdapter, ADWAdapter
+        register_adapter("oracle", OracleAdapter)
+        register_adapter("oracledb", OracleDBAdapter)  # Alias
+        register_adapter("oci", OCIAdapter)  # Oracle Cloud Infrastructure
+        register_adapter("atp", ATPAdapter)  # Autonomous Transaction Processing
+        register_adapter("adw", ADWAdapter)  # Autonomous Data Warehouse
+    except ImportError as e:
+        logger.debug(f"Oracle adapter not available: {e}")
 
 
 # Register on module load
