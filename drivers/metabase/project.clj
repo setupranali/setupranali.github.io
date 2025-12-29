@@ -11,13 +11,11 @@
                  [cheshire "5.11.0"]]
   
   :profiles {:provided
-             {:dependencies [[metabase-core "1.0.0"]]}}
-  
-  :plugins [[lein-clean-ns "0.1.0"]]
+             {:dependencies []}}
   
   :source-paths ["src"]
   
-  :aot [metabase.driver.setupranali]
+  :aot :all
   
   :jar-name "setupranali-driver.jar"
   :uberjar-name "setupranali-driver.metabase-driver.jar"
