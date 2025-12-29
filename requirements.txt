@@ -42,6 +42,9 @@ mysql-connector-python>=8.0.0
 # Trino / Presto (federated queries)
 trino>=0.327.0
 
+# SQL Server / Azure SQL
+pymssql>=2.2.0
+
 # -----------------------------------------------------------------------------
 # Security & Encryption
 # -----------------------------------------------------------------------------

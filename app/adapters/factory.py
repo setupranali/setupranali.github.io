@@ -293,6 +293,16 @@ def _register_builtin_adapters():
         register_adapter("prestodb", PrestoAdapter)  # Another alias
     except ImportError as e:
         logger.debug(f"Trino/Presto adapter not available: {e}")
+    
+    # SQL Server / Azure SQL
+    try:
+        from app.adapters.sqlserver_adapter import SQLServerAdapter, MSSQLAdapter, AzureSQLAdapter
+        register_adapter("sqlserver", SQLServerAdapter)
+        register_adapter("mssql", MSSQLAdapter)  # Alias
+        register_adapter("azuresql", AzureSQLAdapter)  # Azure SQL alias
+        register_adapter("azure-sql", AzureSQLAdapter)  # Another Azure alias
+    except ImportError as e:
+        logger.debug(f"SQL Server adapter not available: {e}")
 
 
 # Register on module load

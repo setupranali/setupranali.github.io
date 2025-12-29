@@ -18,6 +18,7 @@ Supported Engines:
 - Redshift
 - ClickHouse
 - Trino / Presto (federated queries)
+- SQL Server / Azure SQL
 """
 
 from app.adapters.base import BaseAdapter, AdapterResult, ConnectionError, QueryError
