@@ -35,6 +35,7 @@ from app.connection_manager import get_engine_and_conn
 from app.adapters.duckdb_adapter import get_shared_duckdb
 from app.odata import router as odata_router
 from app.graphql_api import graphql_router
+from app.advanced_routes import router as advanced_router
 from app.security import require_api_key, require_internal_admin, TenantContext
 from app.crypto import is_encryption_configured
 from app.rate_limit import limit_query, limit_odata, limit_sources
@@ -199,6 +200,13 @@ app.include_router(
     graphql_router,
     prefix="/v1/graphql",
     tags=["GraphQL"]
+)
+
+# Advanced Features API (Joins, Calculated Metrics, Caching, Federation)
+app.include_router(
+    advanced_router,
+    prefix="/v1/advanced",
+    tags=["Advanced Features"]
 )
 
 

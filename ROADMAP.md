@@ -156,12 +156,12 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 
 ### Advanced Features
 
-| Feature | Description |
-|---------|-------------|
-| Semantic joins | Join across datasets in the semantic layer |
-| Calculated metrics | Define metrics based on other metrics |
-| Caching strategies | Smart cache invalidation, pre-warming |
-| Query federation | Query across multiple data sources |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| Semantic joins | Join across datasets in the semantic layer | ✅ Completed |
+| Calculated metrics | Define metrics based on other metrics | ✅ Completed |
+| Caching strategies | Smart cache invalidation, pre-warming | ✅ Completed |
+| Query federation | Query across multiple data sources | ✅ Completed |
 
 ### Ecosystem
 

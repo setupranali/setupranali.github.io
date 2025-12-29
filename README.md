@@ -59,6 +59,10 @@ It's an open-source semantic gateway that bridges your BI tools (Power BI, Table
 - **📦 JavaScript SDK** — `npm install @setupranali/client`
 - **📓 Jupyter Widget** — Interactive widget for notebooks
 - **🖥️ CLI Tool** — Manage everything from the command line
+- **🔗 Semantic Joins** — Join across datasets in the semantic layer
+- **📊 Calculated Metrics** — Define metrics based on other metrics
+- **🧠 Smart Caching** — Intelligent cache invalidation and pre-warming
+- **🌐 Query Federation** — Query across multiple data sources as one
 
 ---
 
