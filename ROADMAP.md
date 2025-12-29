@@ -92,7 +92,7 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 | Apache Superset | REST API integration | ✅ Completed |
 | Looker Studio | Community Connector | ✅ Completed |
 | Metabase | HTTP driver support | ✅ Completed |
-| Grafana | Data source plugin | ✋ Help Wanted |
+| Grafana | Data source plugin | ✅ Completed |
 | Qlik Sense | REST connector | 📋 Planned |
 | Mode Analytics | REST integration | 📋 Planned |
 

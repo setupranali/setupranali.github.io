@@ -1,0 +1,39 @@
+{
+  "type": "datasource",
+  "name": "SetuPranali",
+  "id": "setupranali-datasource",
+  "metrics": true,
+  "alerting": true,
+  "annotations": true,
+  "backend": true,
+  "executable": "gpx_setupranali",
+  "info": {
+    "description": "SetuPranali Semantic Layer - Universal BI Connector",
+    "author": {
+      "name": "SetuPranali Community",
+      "url": "https://setupranali.github.io"
+    },
+    "keywords": ["semantic-layer", "bi", "analytics", "metrics"],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {
+        "name": "Documentation",
+        "url": "https://setupranali.github.io"
+      },
+      {
+        "name": "GitHub",
+        "url": "https://github.com/setupranali/setupranali.github.io"
+      }
+    ],
+    "version": "1.0.0",
+    "updated": "2024-12-29"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=9.0.0",
+    "plugins": []
+  }
+}
+

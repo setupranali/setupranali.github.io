@@ -169,6 +169,7 @@ nav:
       - integrations/bi-tools/index.md
       - Power BI: integrations/bi-tools/powerbi.md
       - Tableau: integrations/bi-tools/tableau.md
+      - Grafana: integrations/bi-tools/grafana.md
       - Apache Superset: integrations/bi-tools/superset.md
       - Looker Studio: integrations/bi-tools/looker-studio.md
       - Metabase: integrations/bi-tools/metabase.md

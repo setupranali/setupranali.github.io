@@ -48,6 +48,14 @@ Connect your visualization tools to SetuPranali.
 
     [:octicons-arrow-right-24: Metabase Guide](metabase.md)
 
+-   :simple-grafana:{ .lg .middle } **Grafana**
+
+    ---
+
+    Native data source plugin for dashboards and alerting.
+
+    [:octicons-arrow-right-24: Grafana Guide](grafana.md)
+
 -   :material-api:{ .lg .middle } **REST API**
 
     ---
@@ -87,6 +95,7 @@ Connect your visualization tools to SetuPranali.
 |------|-------------|-------------------|---------|
 | Apache Superset | ✅ REST API | ✅ Automatic | ✅ Redis |
 | Metabase | ✅ **Native Driver** | ✅ Automatic | ✅ Redis |
+| Grafana | ✅ **Native Plugin** | ✅ Automatic | ✅ Redis |
 | Looker Studio | ✅ Community Connector | ✅ Automatic | ✅ Redis |
 
 ---
