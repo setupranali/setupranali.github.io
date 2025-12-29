@@ -116,7 +116,7 @@ While Cube.dev targets developers building analytics products and dbt Semantic L
 |---------|-------------|
 | OAuth 2.0 / OIDC | Support for OAuth-based authentication | ✅ Completed |
 | SSO/SAML | Enterprise identity provider integration | ✅ Completed |
-| Fine-grained permissions | Column-level and dataset-level access control |
+| Fine-grained permissions | Column-level and dataset-level access control | ✅ Completed |
 
 ### Observability
 
