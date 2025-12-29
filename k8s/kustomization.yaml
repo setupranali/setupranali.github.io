@@ -1,0 +1,34 @@
+# =============================================================================
+# SetuPranali - Kustomization
+# =============================================================================
+# Use Kustomize to deploy all resources at once.
+#
+# Apply: kubectl apply -k k8s/
+# Preview: kubectl kustomize k8s/
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ubi-connector
+
+# Resources to deploy (in order)
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - redis.yaml
+  - deployment.yaml
+  - service.yaml
+
+# Common labels for all resources
+commonLabels:
+  app.kubernetes.io/part-of: ubi-connector
+  app.kubernetes.io/managed-by: kustomize
+
+# Image configuration (override with kustomize edit)
+images:
+  - name: ubi-connector
+    newName: ubi-connector
+    newTag: latest
+

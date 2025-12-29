@@ -1,0 +1,192 @@
+site_name: SetuPranali
+site_description: The Bridge System for BI — Connect Power BI & Tableau securely.
+site_url: https://setupranali.github.io/
+repo_url: https://github.com/setupranali/setupranali.github.io
+repo_name: setupranali
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  logo: assets/logo.svg
+  favicon: assets/favicon.ico
+  
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.tabs.link
+    - content.code.copy
+    - content.code.annotate
+    - announce.dismiss
+  
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      separator: '[\s\-\.]'
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - tables
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/setupranali/setupranali.github.io
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/setupranali
+    - icon: fontawesome/brands/linkedin
+      link: https://linkedin.com/company/setupranali
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/setupranali
+  
+  # Uncomment to enable analytics
+  # analytics:
+  #   provider: google
+  #   property: G-XXXXXXXXXX
+  
+  # Uncomment to enable versioning with mike
+  # version:
+  #   provider: mike
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home: index.md
+  
+  - Getting Started:
+    - getting-started/index.md
+    - Quick Start: getting-started/quickstart.md
+    - Installation: getting-started/installation.md
+    - First Query: getting-started/first-query.md
+    - Connect BI Tool: getting-started/connect-bi-tool.md
+  
+  - Concepts:
+    - concepts/index.md
+    - Architecture: concepts/architecture.md
+    - Semantic Layer: concepts/semantic-layer.md
+    - Security Model: concepts/security.md
+    - Caching: concepts/caching.md
+    - Rate Limiting: concepts/rate-limiting.md
+  
+  - Guides:
+    - guides/index.md
+    - Defining Datasets: guides/datasets.md
+    - Row-Level Security: guides/rls.md
+    - Incremental Refresh: guides/incremental-refresh.md
+    - Multi-Tenant Setup: guides/multi-tenant.md
+    - API Keys: guides/api-keys.md
+  
+  - Integrations:
+    - integrations/index.md
+    - Data Sources:
+      - integrations/sources/index.md
+      - PostgreSQL: integrations/sources/postgresql.md
+      - MySQL: integrations/sources/mysql.md
+      - Snowflake: integrations/sources/snowflake.md
+      - BigQuery: integrations/sources/bigquery.md
+      - Databricks: integrations/sources/databricks.md
+      - Redshift: integrations/sources/redshift.md
+      - ClickHouse: integrations/sources/clickhouse.md
+    - BI Tools:
+      - integrations/bi-tools/index.md
+      - Power BI: integrations/bi-tools/powerbi.md
+      - Tableau: integrations/bi-tools/tableau.md
+      - REST API: integrations/bi-tools/rest-api.md
+    - Modeling Layers:
+      - integrations/modeling/index.md
+      - dbt: integrations/modeling/dbt.md
+      - Existing Views: integrations/modeling/views.md
+  
+  - API Reference:
+    - api-reference/index.md
+    - Query API: api-reference/query.md
+    - OData API: api-reference/odata.md
+    - Sources API: api-reference/sources.md
+    - Authentication: api-reference/authentication.md
+  
+  - Deployment:
+    - deployment/index.md
+    - Docker: deployment/docker.md
+    - Kubernetes: deployment/kubernetes.md
+    - Configuration: deployment/configuration.md
+    - Production Checklist: deployment/production-checklist.md
+  
+  - Examples:
+    - examples/index.md
+    - dbt Integration: examples/dbt.md
+    - Multi-Source: examples/multi-source.md
+    - Enterprise Setup: examples/enterprise.md
+
+copyright: Copyright &copy; 2024-2025 SetuPranali
+

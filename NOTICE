@@ -1,0 +1,37 @@
+SetuPranali
+Copyright 2024 SetuPranali Contributors
+
+This product includes software developed by the SetuPranali
+open source community (https://github.com/setupranali/connector).
+
+Licensed under the Apache License, Version 2.0.
+
+================================================================================
+
+This project uses the following open source components:
+
+FastAPI (https://fastapi.tiangolo.com/)
+  License: MIT
+
+Uvicorn (https://www.uvicorn.org/)
+  License: BSD-3-Clause
+
+Pydantic (https://docs.pydantic.dev/)
+  License: MIT
+
+DuckDB (https://duckdb.org/)
+  License: MIT
+
+Redis-py (https://redis-py.readthedocs.io/)
+  License: MIT
+
+Cryptography (https://cryptography.io/)
+  License: Apache-2.0 / BSD-3-Clause
+
+PyYAML (https://pyyaml.org/)
+  License: MIT
+
+================================================================================
+
+The above list is not exhaustive. See requirements.txt for full dependencies.
+

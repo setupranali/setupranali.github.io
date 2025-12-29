@@ -1,0 +1,16 @@
+# =============================================================================
+# SetuPranali - Kubernetes Namespace
+# =============================================================================
+# Creates a dedicated namespace for UBI Connector resources.
+#
+# Apply: kubectl apply -f namespace.yaml
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ubi-connector
+  labels:
+    app.kubernetes.io/name: ubi-connector
+    app.kubernetes.io/component: namespace
+

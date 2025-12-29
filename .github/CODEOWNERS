@@ -1,0 +1,30 @@
+# Code Owners for SetuPranali
+# These users will be automatically requested for review on PRs
+
+# Default owners for everything
+* @setupranali/maintainers
+
+# Core application
+/app/ @setupranali/core-team
+
+# Database adapters
+/app/adapters/ @setupranali/adapter-maintainers
+
+# Documentation
+/docs/ @setupranali/docs-team
+*.md @setupranali/docs-team
+
+# Deployment configurations
+/k8s/ @setupranali/infra-team
+/Dockerfile @setupranali/infra-team
+/docker-compose*.yml @setupranali/infra-team
+
+# CI/CD
+/.github/ @setupranali/maintainers
+
+# Security-sensitive files
+/app/security.py @setupranali/security-team
+/app/crypto.py @setupranali/security-team
+/app/rls.py @setupranali/security-team
+SECURITY.md @setupranali/security-team
+

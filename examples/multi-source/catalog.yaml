@@ -1,0 +1,239 @@
+# =============================================================================
+# EXAMPLE: Multi-Source / Multi-Engine Configuration
+# =============================================================================
+# 
+# This example shows how to expose data from multiple databases/warehouses
+# through a single API endpoint.
+#
+# SCENARIO:
+# - Sales data in Snowflake (TB-scale)
+# - Product catalog in PostgreSQL
+# - Real-time metrics in ClickHouse
+# - All accessible via same API with consistent security
+#
+# =============================================================================
+
+datasets:
+  # ---------------------------------------------------------------------------
+  # Snowflake: TB-scale Sales Data
+  # ---------------------------------------------------------------------------
+  - id: sales
+    name: Sales Analytics
+    description: Historical sales data (TB-scale, Snowflake)
+    tags: [snowflake, sales, enterprise]
+    
+    source:
+      engine: snowflake
+      sourceId: snowflake-prod     # Register via /v1/sources
+      type: table
+      reference: ANALYTICS.MARTS.FCT_SALES
+    
+    rls:
+      enabled: true
+      column: TENANT_ID
+      mode: equals
+      allowAdminBypass: true
+    
+    incremental:
+      enabled: true
+      column: SALE_DATE
+      type: date
+      mode: append
+      maxWindowDays: 365          # 1 year for large datasets
+    
+    fields:
+      - name: SALE_ID
+        type: string
+        semanticType: identifier
+      - name: TENANT_ID
+        type: string
+        semanticType: dimension
+      - name: SALE_DATE
+        type: date
+        semanticType: time
+      - name: CUSTOMER_ID
+        type: string
+        semanticType: dimension
+      - name: PRODUCT_ID
+        type: string
+        semanticType: dimension
+      - name: REGION
+        type: string
+        semanticType: geo_region
+      - name: AMOUNT
+        type: double
+        semanticType: metric
+      - name: QUANTITY
+        type: int64
+        semanticType: metric
+    
+    dimensions:
+      - name: sale_date
+        field: SALE_DATE
+        label: Sale Date
+      - name: region
+        field: REGION
+        label: Region
+    
+    metrics:
+      - name: total_sales
+        label: Total Sales
+        expression:
+          type: aggregation
+          agg: sum
+          field: AMOUNT
+        returnType: double
+        format: currency
+      
+      - name: transaction_count
+        label: Transactions
+        expression:
+          type: aggregation
+          agg: count
+          field: SALE_ID
+        returnType: int64
+
+  # ---------------------------------------------------------------------------
+  # BigQuery: Marketing Analytics
+  # ---------------------------------------------------------------------------
+  - id: marketing
+    name: Marketing Analytics
+    description: Marketing performance data (BigQuery)
+    tags: [bigquery, marketing]
+    
+    source:
+      engine: bigquery
+      sourceId: bigquery-prod
+      type: table
+      reference: analytics.marketing.campaign_performance
+    
+    rls:
+      enabled: true
+      column: tenant_id
+      mode: equals
+    
+    fields:
+      - name: campaign_id
+        type: string
+        semanticType: identifier
+      - name: tenant_id
+        type: string
+        semanticType: dimension
+      - name: campaign_date
+        type: date
+        semanticType: time
+      - name: channel
+        type: string
+        semanticType: dimension
+      - name: impressions
+        type: int64
+        semanticType: metric
+      - name: clicks
+        type: int64
+        semanticType: metric
+      - name: spend
+        type: double
+        semanticType: metric
+      - name: conversions
+        type: int64
+        semanticType: metric
+    
+    dimensions:
+      - name: campaign_date
+        field: campaign_date
+        label: Date
+      - name: channel
+        field: channel
+        label: Channel
+    
+    metrics:
+      - name: total_impressions
+        label: Impressions
+        expression:
+          type: aggregation
+          agg: sum
+          field: impressions
+        returnType: int64
+      
+      - name: total_clicks
+        label: Clicks
+        expression:
+          type: aggregation
+          agg: sum
+          field: clicks
+        returnType: int64
+      
+      - name: ctr
+        label: CTR
+        description: Click-through rate
+        expression:
+          type: raw
+          sql: "SAFE_DIVIDE(SUM(clicks), SUM(impressions)) * 100"
+        returnType: double
+        format: percent
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL: Product Catalog (Smaller, transactional)
+  # ---------------------------------------------------------------------------
+  - id: products
+    name: Product Catalog
+    description: Product master data (PostgreSQL)
+    tags: [postgres, products, master-data]
+    
+    source:
+      engine: postgres
+      sourceId: postgres-catalog
+      type: table
+      reference: catalog.products
+    
+    rls:
+      enabled: true
+      column: tenant_id
+      mode: equals
+    
+    fields:
+      - name: product_id
+        type: string
+        semanticType: identifier
+      - name: tenant_id
+        type: string
+        semanticType: dimension
+      - name: product_name
+        type: string
+        semanticType: dimension
+      - name: category
+        type: string
+        semanticType: dimension
+      - name: price
+        type: double
+        semanticType: metric
+      - name: is_active
+        type: boolean
+        semanticType: dimension
+    
+    dimensions:
+      - name: category
+        field: category
+        label: Category
+      - name: is_active
+        field: is_active
+        label: Active
+    
+    metrics:
+      - name: product_count
+        label: Products
+        expression:
+          type: aggregation
+          agg: count
+          field: product_id
+        returnType: int64
+      
+      - name: avg_price
+        label: Avg Price
+        expression:
+          type: aggregation
+          agg: avg
+          field: price
+        returnType: double
+        format: currency
+

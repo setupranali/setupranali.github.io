@@ -1,0 +1,213 @@
+# =============================================================================
+# EXAMPLE: SetuPranali with dbt Models
+# =============================================================================
+# 
+# This example shows how to expose dbt-transformed tables through the connector.
+# 
+# SCENARIO:
+# - You have dbt running transformations in your data warehouse
+# - dbt creates tables like `analytics.fct_orders`, `analytics.dim_customers`
+# - You want BI tools to query these with API key auth and RLS
+#
+# ARCHITECTURE:
+# 
+#   dbt models (fct_orders, dim_customers)
+#        ↓
+#   [Snowflake/BigQuery/Postgres tables]
+#        ↓
+#   SetuPranali (this catalog)
+#        ↓
+#   Power BI / Tableau
+#
+# =============================================================================
+
+datasets:
+  # ---------------------------------------------------------------------------
+  # Orders Fact Table (built by dbt)
+  # ---------------------------------------------------------------------------
+  - id: orders
+    name: Orders
+    description: Order facts from dbt fct_orders model
+    tags: [dbt, sales, fact]
+    
+    # Point to your dbt-created table
+    source:
+      engine: postgres          # or snowflake, bigquery
+      sourceId: warehouse       # registered via /v1/sources API
+      type: table
+      reference: analytics.fct_orders  # ← Your dbt model output
+    
+    # RLS for multi-tenant access
+    rls:
+      enabled: true
+      column: tenant_id         # dbt should include this in the model
+      mode: equals
+      allowAdminBypass: true
+    
+    # Incremental refresh on order_date
+    incremental:
+      enabled: true
+      column: order_date
+      type: date
+      mode: append
+    
+    # Define fields that exist in your dbt model
+    # These should match your dbt schema.yml definitions
+    fields:
+      - name: order_id
+        type: string
+        semanticType: identifier
+      - name: tenant_id
+        type: string
+        semanticType: dimension
+      - name: customer_id
+        type: string
+        semanticType: dimension
+      - name: order_date
+        type: date
+        semanticType: time
+      - name: order_status
+        type: string
+        semanticType: dimension
+      - name: order_total
+        type: double
+        semanticType: metric
+      - name: item_count
+        type: int64
+        semanticType: metric
+      # dbt-calculated fields
+      - name: gross_margin
+        type: double
+        semanticType: metric
+      - name: days_to_ship
+        type: int64
+        semanticType: metric
+    
+    # Dimensions for grouping
+    dimensions:
+      - name: order_date
+        field: order_date
+        label: Order Date
+      - name: order_status
+        field: order_status
+        label: Status
+      - name: customer_id
+        field: customer_id
+        label: Customer
+    
+    # Metrics - these aggregate your dbt fields
+    metrics:
+      - name: total_revenue
+        label: Total Revenue
+        expression:
+          type: aggregation
+          agg: sum
+          field: order_total
+        returnType: double
+        format: currency
+      
+      - name: order_count
+        label: Orders
+        expression:
+          type: aggregation
+          agg: count
+          field: order_id
+        returnType: int64
+      
+      - name: avg_order_value
+        label: Avg Order Value
+        expression:
+          type: aggregation
+          agg: avg
+          field: order_total
+        returnType: double
+        format: currency
+      
+      - name: total_margin
+        label: Total Margin
+        description: Uses dbt-calculated gross_margin field
+        expression:
+          type: aggregation
+          agg: sum
+          field: gross_margin
+        returnType: double
+        format: currency
+      
+      - name: avg_days_to_ship
+        label: Avg Days to Ship
+        description: Uses dbt-calculated days_to_ship field
+        expression:
+          type: aggregation
+          agg: avg
+          field: days_to_ship
+        returnType: double
+
+  # ---------------------------------------------------------------------------
+  # Customers Dimension (built by dbt)
+  # ---------------------------------------------------------------------------
+  - id: customers
+    name: Customers
+    description: Customer dimension from dbt dim_customers model
+    tags: [dbt, customers, dimension]
+    
+    source:
+      engine: postgres
+      sourceId: warehouse
+      type: table
+      reference: analytics.dim_customers  # ← Your dbt model
+    
+    rls:
+      enabled: true
+      column: tenant_id
+      mode: equals
+      allowAdminBypass: true
+    
+    fields:
+      - name: customer_id
+        type: string
+        semanticType: identifier
+      - name: tenant_id
+        type: string
+        semanticType: dimension
+      - name: customer_name
+        type: string
+        semanticType: dimension
+      - name: segment
+        type: string
+        semanticType: dimension
+      - name: region
+        type: string
+        semanticType: geo_region
+      - name: lifetime_value
+        type: double
+        semanticType: metric
+      - name: first_order_date
+        type: date
+        semanticType: time
+    
+    dimensions:
+      - name: segment
+        field: segment
+        label: Customer Segment
+      - name: region
+        field: region
+        label: Region
+    
+    metrics:
+      - name: customer_count
+        label: Customers
+        expression:
+          type: aggregation
+          agg: count_distinct
+          field: customer_id
+        returnType: int64
+      
+      - name: total_ltv
+        label: Total Lifetime Value
+        expression:
+          type: aggregation
+          agg: sum
+          field: lifetime_value
+        returnType: double
+        format: currency
+

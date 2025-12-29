@@ -1,0 +1,157 @@
+# =============================================================================
+# SetuPranali - Docker Compose (Production)
+# =============================================================================
+# Production-like deployment with all services.
+#
+# Usage:
+#   docker compose up -d          # Start all services
+#   docker compose logs -f api    # Follow API logs
+#   docker compose down           # Stop all services
+#
+# For development, use with docker-compose.override.yml (auto-detected)
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # API Service - SetuPranali
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ubi-connector:latest
+    container_name: ubi-api
+    restart: unless-stopped
+    
+    ports:
+      - "${API_PORT:-8080}:8080"
+    
+    environment:
+      # Security - REQUIRED in production
+      - UBI_SECRET_KEY=${UBI_SECRET_KEY:?UBI_SECRET_KEY is required}
+      
+      # Redis connection
+      - REDIS_URL=redis://redis:6379/0
+      
+      # Cache configuration
+      - CACHE_ENABLED=${CACHE_ENABLED:-true}
+      - CACHE_TTL_SECONDS=${CACHE_TTL_SECONDS:-60}
+      - CACHE_MAX_ROWS=${CACHE_MAX_ROWS:-10000}
+      
+      # Rate limiting
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+      - RATE_LIMIT_QUERY=${RATE_LIMIT_QUERY:-60/minute}
+      - RATE_LIMIT_ODATA=${RATE_LIMIT_ODATA:-120/minute}
+      
+      # Safety guards
+      - QUERY_MAX_ROWS=${QUERY_MAX_ROWS:-100000}
+      - QUERY_MAX_DIMENSIONS=${QUERY_MAX_DIMENSIONS:-20}
+      - QUERY_TIMEOUT_SECONDS=${QUERY_TIMEOUT_SECONDS:-30}
+      
+      # Environment
+      - ENV=${ENV:-production}
+    
+    volumes:
+      # Persist SQLite database for sources
+      - ubi-sources-db:/app/app/db
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    networks:
+      - ubi-network
+    
+    # Resource limits (adjust based on expected load)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # ---------------------------------------------------------------------------
+  # Redis - Cache & Rate Limiting Backend
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: ubi-redis
+    restart: unless-stopped
+    
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    
+    volumes:
+      # Persist Redis data
+      - ubi-redis-data:/data
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    
+    networks:
+      - ubi-network
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # ---------------------------------------------------------------------------
+  # Nginx - Reverse Proxy (Optional)
+  # ---------------------------------------------------------------------------
+  # Uncomment to add TLS termination and additional security headers.
+  # In production, you may use a cloud load balancer instead.
+  #
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: ubi-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./certs:/etc/nginx/certs:ro
+  #   depends_on:
+  #     - api
+  #   networks:
+  #     - ubi-network
+
+# -----------------------------------------------------------------------------
+# Networks
+# -----------------------------------------------------------------------------
+networks:
+  ubi-network:
+    driver: bridge
+    name: ubi-network
+
+# -----------------------------------------------------------------------------
+# Volumes
+# -----------------------------------------------------------------------------
+volumes:
+  # SQLite database for encrypted source credentials
+  ubi-sources-db:
+    name: ubi-sources-db
+  
+  # Redis persistence
+  ubi-redis-data:
+    name: ubi-redis-data
+

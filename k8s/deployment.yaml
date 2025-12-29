@@ -1,0 +1,142 @@
+# =============================================================================
+# SetuPranali - Deployment
+# =============================================================================
+# Kubernetes Deployment for the API service.
+#
+# Apply: kubectl apply -f deployment.yaml
+#
+# Features:
+# - Rolling updates
+# - Health checks (liveness + readiness)
+# - Resource limits
+# - Non-root security context
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ubi-connector
+  namespace: ubi-connector
+  labels:
+    app.kubernetes.io/name: ubi-connector
+    app.kubernetes.io/component: api
+spec:
+  replicas: 2
+  
+  # Rolling update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ubi-connector
+      app.kubernetes.io/component: api
+  
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ubi-connector
+        app.kubernetes.io/component: api
+      annotations:
+        # Force pod restart when configmap/secret changes
+        checksum/config: "{{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}"
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      
+      # Service account (create if using IRSA or workload identity)
+      # serviceAccountName: ubi-connector
+      
+      containers:
+        - name: api
+          image: ubi-connector:latest
+          imagePullPolicy: Always
+          
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          
+          # Environment from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: ubi-connector-config
+            - secretRef:
+                name: ubi-connector-secrets
+          
+          # Liveness probe - is the container alive?
+          livenessProbe:
+            httpGet:
+              path: /v1/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          # Readiness probe - is the container ready to serve traffic?
+          readinessProbe:
+            httpGet:
+              path: /v1/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          # Resource limits
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          
+          # Security context for container
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false  # SQLite needs write access
+            capabilities:
+              drop:
+                - ALL
+          
+          # Volume mounts
+          volumeMounts:
+            - name: sources-db
+              mountPath: /app/app/db
+      
+      # Volumes
+      volumes:
+        - name: sources-db
+          persistentVolumeClaim:
+            claimName: ubi-sources-db
+
+---
+# =============================================================================
+# PersistentVolumeClaim for sources.db
+# =============================================================================
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ubi-sources-db
+  namespace: ubi-connector
+  labels:
+    app.kubernetes.io/name: ubi-connector
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # Specify storage class if needed
+  # storageClassName: gp3
+

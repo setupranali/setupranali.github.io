@@ -1,0 +1,50 @@
+# =============================================================================
+# SetuPranali - ConfigMap
+# =============================================================================
+# Non-sensitive configuration values.
+# Secrets (UBI_SECRET_KEY, etc.) go in secret.yaml
+#
+# Apply: kubectl apply -f configmap.yaml
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ubi-connector-config
+  namespace: ubi-connector
+  labels:
+    app.kubernetes.io/name: ubi-connector
+    app.kubernetes.io/component: config
+data:
+  # -----------------------------------------------------------------------------
+  # Cache Configuration
+  # -----------------------------------------------------------------------------
+  CACHE_ENABLED: "true"
+  CACHE_TTL_SECONDS: "60"
+  CACHE_MAX_ROWS: "10000"
+  CACHE_ADMIN_BYPASS: "false"
+  
+  # -----------------------------------------------------------------------------
+  # Rate Limiting
+  # -----------------------------------------------------------------------------
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_QUERY: "60/minute"
+  RATE_LIMIT_ODATA: "120/minute"
+  RATE_LIMIT_SOURCES: "30/minute"
+  
+  # -----------------------------------------------------------------------------
+  # Safety Guards
+  # -----------------------------------------------------------------------------
+  SAFETY_GUARDS_ENABLED: "true"
+  QUERY_MAX_ROWS: "100000"
+  QUERY_MAX_DIMENSIONS: "20"
+  QUERY_MAX_METRICS: "50"
+  QUERY_MAX_FILTER_DEPTH: "10"
+  QUERY_TIMEOUT_SECONDS: "30"
+  
+  # -----------------------------------------------------------------------------
+  # Environment
+  # -----------------------------------------------------------------------------
+  ENV: "production"
+  LOG_LEVEL: "INFO"
+

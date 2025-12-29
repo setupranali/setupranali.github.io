@@ -1,0 +1,160 @@
+# =============================================================================
+# EXAMPLE: SetuPranali with Existing Warehouse Views
+# =============================================================================
+# 
+# This is the simplest integration pattern. Your data team has already
+# created views in the warehouse - just expose them through the connector.
+#
+# SCENARIO:
+# - Your DBA/data team created views like `reporting.v_sales_summary`
+# - Views already have the business logic baked in
+# - You just want to add API security and BI connectivity
+#
+# =============================================================================
+
+datasets:
+  # ---------------------------------------------------------------------------
+  # Sales Summary View
+  # ---------------------------------------------------------------------------
+  - id: sales_summary
+    name: Sales Summary
+    description: Pre-built sales summary view from warehouse
+    tags: [warehouse, views, sales]
+    
+    source:
+      engine: postgres          # or snowflake, bigquery, redshift
+      sourceId: warehouse
+      type: view                # Explicitly a view
+      reference: reporting.v_sales_summary
+    
+    rls:
+      enabled: true
+      column: tenant_id
+      mode: equals
+      allowAdminBypass: true
+    
+    # Fields match exactly what's in the view
+    fields:
+      - name: sale_date
+        type: date
+        semanticType: time
+      - name: tenant_id
+        type: string
+        semanticType: dimension
+      - name: region
+        type: string
+        semanticType: geo_region
+      - name: product_category
+        type: string
+        semanticType: dimension
+      - name: total_sales
+        type: double
+        semanticType: metric
+      - name: total_units
+        type: int64
+        semanticType: metric
+      - name: avg_price
+        type: double
+        semanticType: metric
+    
+    dimensions:
+      - name: sale_date
+        field: sale_date
+        label: Date
+      - name: region
+        field: region
+        label: Region
+      - name: product_category
+        field: product_category
+        label: Category
+    
+    # Simple aggregations on pre-calculated view columns
+    metrics:
+      - name: sales
+        label: Total Sales
+        expression:
+          type: aggregation
+          agg: sum
+          field: total_sales
+        returnType: double
+        format: currency
+      
+      - name: units
+        label: Total Units
+        expression:
+          type: aggregation
+          agg: sum
+          field: total_units
+        returnType: int64
+
+  # ---------------------------------------------------------------------------
+  # Inventory Status View (Real-time)
+  # ---------------------------------------------------------------------------
+  - id: inventory
+    name: Inventory Status
+    description: Current inventory levels from warehouse view
+    tags: [warehouse, views, inventory]
+    
+    source:
+      engine: postgres
+      sourceId: warehouse
+      type: view
+      reference: operations.v_inventory_current
+    
+    rls:
+      enabled: true
+      column: tenant_id
+      mode: equals
+    
+    # No incremental for real-time view
+    incremental:
+      enabled: false
+    
+    fields:
+      - name: sku
+        type: string
+        semanticType: identifier
+      - name: tenant_id
+        type: string
+        semanticType: dimension
+      - name: warehouse_id
+        type: string
+        semanticType: dimension
+      - name: product_name
+        type: string
+        semanticType: dimension
+      - name: quantity_on_hand
+        type: int64
+        semanticType: metric
+      - name: reorder_point
+        type: int64
+        semanticType: metric
+      - name: days_of_supply
+        type: double
+        semanticType: metric
+    
+    dimensions:
+      - name: warehouse_id
+        field: warehouse_id
+        label: Warehouse
+      - name: product_name
+        field: product_name
+        label: Product
+    
+    metrics:
+      - name: total_inventory
+        label: Total Units
+        expression:
+          type: aggregation
+          agg: sum
+          field: quantity_on_hand
+        returnType: int64
+      
+      - name: low_stock_items
+        label: Low Stock SKUs
+        description: Count of SKUs below reorder point
+        expression:
+          type: raw
+          sql: "COUNT(CASE WHEN quantity_on_hand < reorder_point THEN 1 END)"
+        returnType: int64
+

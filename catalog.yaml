@@ -1,0 +1,98 @@
+datasets:
+  - id: orders
+    name: Orders
+    description: Order-level facts
+    tags: [sales, demo]
+    defaultTimezone: Asia/Kolkata
+    # For demo, using DuckDB in-memory table seeded in main.py
+    # For production, use sourceId to reference a Postgres source
+    source:
+      engine: duckdb
+      type: table
+      reference: orders
+
+    # ==========================================================================
+    # INCREMENTAL REFRESH CONFIGURATION
+    # ==========================================================================
+    # Enables BI tools (Power BI, Tableau) to fetch only new/changed data.
+    #
+    # How it works:
+    # - column: The field used to detect new rows (typically a date or timestamp)
+    # - type: The data type of the column (date, datetime, or int)
+    # - mode: append = only new rows, upsert = new + updated (future)
+    # - maxWindowDays: Safety limit to prevent runaway scans (default: 90 days)
+    #
+    # Power BI: Uses $filter with ge/lt on incrementalColumn
+    # Tableau: Uses incrementalExtractColumn with lastExtractValue
+    # REST API: Uses incrementalFrom/incrementalTo in QueryRequest
+    incremental:
+      enabled: true
+      column: order_date
+      type: date
+      mode: append
+      maxWindowDays: 90
+
+    # ==========================================================================
+    # ROW-LEVEL SECURITY (RLS)
+    # ==========================================================================
+    # Automatically filters data based on authenticated tenant.
+    # No BI tool changes required - enforced transparently via API key.
+    #
+    # How it works:
+    # - column: The field containing tenant identifier (e.g., tenant_id)
+    # - mode: equals = exact match, in_list = list membership (future)
+    # - allowAdminBypass: If true, admin role users see all data
+    #
+    # Example: If tenant="tenantA" and column="tenant_id":
+    #   WHERE tenant_id = 'tenantA' is automatically injected
+    #
+    # NOTE: RLS is applied AFTER authentication. Unauthenticated requests
+    # are rejected before RLS is evaluated.
+    rls:
+      enabled: true
+      column: tenant_id
+      mode: equals
+      allowAdminBypass: true
+
+    fields:
+      - name: order_id
+        type: string
+        semanticType: identifier
+      - name: tenant_id
+        type: string
+        semanticType: dimension
+      - name: order_date
+        type: date
+        semanticType: time
+      - name: city
+        type: string
+        semanticType: geo_city
+      - name: revenue
+        type: double
+        semanticType: metric
+      - name: qty
+        type: int64
+        semanticType: metric
+    dimensions:
+      - name: order_date
+        field: order_date
+        label: Order Date
+      - name: city
+        field: city
+        label: City
+    metrics:
+      - name: total_revenue
+        label: Total Revenue
+        expression:
+          type: aggregation
+          agg: sum
+          field: revenue
+        returnType: double
+        format: currency
+      - name: orders_count
+        label: Orders
+        expression:
+          type: aggregation
+          agg: count
+          field: order_id
+        returnType: int64

@@ -1,0 +1,71 @@
+# =============================================================================
+# SetuPranali - Service
+# =============================================================================
+# Kubernetes Service to expose the API.
+#
+# Apply: kubectl apply -f service.yaml
+#
+# Access:
+# - Internal: http://ubi-connector.ubi-connector.svc.cluster.local:8080
+# - External: Configure Ingress or LoadBalancer
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ubi-connector
+  namespace: ubi-connector
+  labels:
+    app.kubernetes.io/name: ubi-connector
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+  
+  selector:
+    app.kubernetes.io/name: ubi-connector
+    app.kubernetes.io/component: api
+
+---
+# =============================================================================
+# Ingress (Optional)
+# =============================================================================
+# Uncomment and configure for external access.
+# Requires an Ingress controller (nginx-ingress, traefik, etc.)
+
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: ubi-connector
+#   namespace: ubi-connector
+#   labels:
+#     app.kubernetes.io/name: ubi-connector
+#     app.kubernetes.io/component: ingress
+#   annotations:
+#     # TLS configuration
+#     cert-manager.io/cluster-issuer: letsencrypt-prod
+#     # Rate limiting (nginx-ingress)
+#     nginx.ingress.kubernetes.io/limit-rps: "100"
+# spec:
+#   ingressClassName: nginx
+#   tls:
+#     - hosts:
+#         - api.example.com
+#       secretName: ubi-connector-tls
+#   rules:
+#     - host: api.example.com
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: ubi-connector
+#                 port:
+#                   number: 8080
+
