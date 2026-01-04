@@ -276,14 +276,27 @@ def list_datasets():
     """List available datasets."""
     catalog = load_catalog()
     items = []
-    for d in catalog.get("datasets", []):
-        items.append({
-            "id": d["id"],
-            "name": d.get("name", d["id"]),
-            "description": d.get("description"),
-            "tags": d.get("tags", []),
-            "defaultTimezone": d.get("defaultTimezone", "UTC")
-        })
+    datasets = catalog.get("datasets", {})
+    # Handle both dict format (id: config) and list format
+    if isinstance(datasets, dict):
+        for dataset_id, d in datasets.items():
+            if isinstance(d, dict):
+                items.append({
+                    "id": dataset_id,
+                    "name": d.get("name", dataset_id),
+                    "description": d.get("description"),
+                    "tags": d.get("tags", []),
+                    "defaultTimezone": d.get("defaultTimezone", "UTC")
+                })
+    else:
+        for d in datasets:
+            items.append({
+                "id": d.get("id", "unknown"),
+                "name": d.get("name", d.get("id", "unknown")),
+                "description": d.get("description"),
+                "tags": d.get("tags", []),
+                "defaultTimezone": d.get("defaultTimezone", "UTC")
+            })
     return {"items": items}
 
 
@@ -295,7 +308,11 @@ def get_dataset_detail(datasetId: str, request: Request):
         d = get_dataset(catalog, datasetId)
         return d
     except KeyError:
-        available = [ds["id"] for ds in catalog.get("datasets", [])]
+        datasets = catalog.get("datasets", {})
+        if isinstance(datasets, dict):
+            available = list(datasets.keys())
+        else:
+            available = [ds.get("id", "unknown") for ds in datasets]
         raise dataset_not_found(
             dataset=datasetId,
             available_datasets=available,
@@ -824,7 +841,11 @@ def run_query(
     try:
         dataset = get_dataset(catalog, req.dataset)
     except KeyError:
-        available = [ds["id"] for ds in catalog.get("datasets", [])]
+        datasets = catalog.get("datasets", {})
+        if isinstance(datasets, dict):
+            available = list(datasets.keys())
+        else:
+            available = [ds.get("id", "unknown") for ds in datasets]
         raise dataset_not_found(
             dataset=req.dataset,
             available_datasets=available,
@@ -833,7 +854,22 @@ def run_query(
     
     try:
         from app.sources import SOURCES
-        engine, conn = get_engine_and_conn(dataset["source"], SOURCES)
+        
+        # Get source config - handle both string reference and object
+        source_ref = dataset.get("source", {})
+        if isinstance(source_ref, str):
+            # String reference to a source in catalog
+            catalog_sources = catalog.get("sources", {})
+            if source_ref in catalog_sources:
+                source_config = catalog_sources[source_ref]
+                # Ensure we have engine type from source definition
+                source_config = {"engine": source_config.get("type", "duckdb"), **source_config}
+            else:
+                source_config = {"sourceId": source_ref}
+        else:
+            source_config = source_ref
+        
+        engine, conn = get_engine_and_conn(source_config, SOURCES)
         
         # Build cache components
         cache_components = build_cache_components_from_request(

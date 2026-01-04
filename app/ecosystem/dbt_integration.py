@@ -70,8 +70,8 @@ class DbtMetric:
 class DbtSemanticModel:
     """dbt Semantic Model (MetricFlow)."""
     name: str
-    description: Optional[str] = None
     model: str  # ref to dbt model
+    description: Optional[str] = None
     entities: List[Dict[str, Any]] = field(default_factory=list)
     dimensions: List[Dict[str, Any]] = field(default_factory=list)
     measures: List[Dict[str, Any]] = field(default_factory=list)
