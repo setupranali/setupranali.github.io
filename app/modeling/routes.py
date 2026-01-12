@@ -10,6 +10,7 @@ REST API endpoints for the BI modeling UI:
 """
 
 import logging
+import re
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -698,6 +699,20 @@ async def delete_semantic_model(model_id: str):
     return {"deleted": True}
 
 
+@router.get("/semantic/{model_id}/yaml")
+async def get_semantic_model_yaml(model_id: str):
+    """Generate YAML contract content for a semantic model."""
+    model = semantic_manager.get(model_id)
+    if not model:
+        raise HTTPException(status_code=404, detail="Semantic model not found")
+
+    yaml_content = _generate_semantic_model_yaml(model)
+    return {
+        "content": yaml_content,
+        "lastModified": model.updated_at.isoformat() if model.updated_at else None,
+    }
+
+
 @router.put("/semantic/{model_id}/from-yaml")
 async def update_semantic_model_from_yaml(model_id: str, content: str = Body(..., embed=True)):
     """
@@ -859,6 +874,117 @@ def _map_yaml_type_to_dimension_type(data_type: str, semantic_type: str) -> str:
         'bool': 'categorical',
     }
     return type_mapping.get(data_type.lower(), 'categorical')
+
+
+def _generate_semantic_model_yaml(model: SemanticModel) -> str:
+    import yaml
+
+    dataset_id = _slugify(model.name or "semantic_model")
+    source_table = _infer_source_table(model)
+    fields = []
+    dimensions = []
+    metrics = []
+
+    for dim in model.dimensions:
+        field_name = dim.source_column or _slugify(dim.name)
+        data_type, semantic_type = _map_dimension_to_yaml_types(dim.dimension_type)
+        fields.append(
+            {
+                "name": field_name,
+                "type": data_type,
+                "semanticType": semantic_type,
+            }
+        )
+        dimensions.append(
+            {
+                "name": _slugify(dim.name),
+                "field": field_name,
+                "label": dim.name,
+            }
+        )
+
+    for measure in model.measures:
+        metrics.append(
+            {
+                "name": _slugify(measure.name),
+                "label": measure.name,
+                "expression": {
+                    "type": "aggregation",
+                    "agg": measure.aggregation.value.lower(),
+                    "field": measure.expression,
+                },
+                "returnType": "double",
+            }
+        )
+
+    for calc in model.calculated_fields:
+        metrics.append(
+            {
+                "name": _slugify(calc.name),
+                "label": calc.name,
+                "expression": {
+                    "type": "calculated",
+                    "formula": calc.expression,
+                },
+                "returnType": calc.result_type or "double",
+            }
+        )
+
+    payload = {
+        "datasets": [
+            {
+                "id": dataset_id,
+                "name": model.name,
+                "description": model.description or f"Semantic model for {model.name}",
+                "tags": ["semantic-model", "auto-generated"],
+                "defaultTimezone": "UTC",
+                "source": {
+                    "engine": "auto",
+                    "type": "table",
+                    "reference": source_table,
+                },
+                "rls": {"enabled": False},
+                "incremental": {"enabled": False},
+                "fields": fields,
+                "dimensions": dimensions,
+                "metrics": metrics,
+            }
+        ]
+    }
+
+    header = [
+        f"# Data Contract: {model.name}",
+        "# Auto-generated from Semantic Model",
+        f"# Last updated: {model.updated_at.isoformat() if model.updated_at else ''}",
+        "",
+    ]
+    yaml_body = yaml.safe_dump(payload, sort_keys=False, default_flow_style=False).rstrip()
+    return "\n".join(header) + yaml_body + "\n"
+
+
+def _map_dimension_to_yaml_types(dimension_type: DimensionType) -> tuple[str, str]:
+    if dimension_type == DimensionType.TIME:
+        return "timestamp", "time"
+    if dimension_type == DimensionType.GEO:
+        return "string", "geo_city"
+    if dimension_type == DimensionType.HIERARCHICAL:
+        return "string", "dimension"
+    return "string", "dimension"
+
+
+def _slugify(value: str) -> str:
+    safe = re.sub(r"[^a-zA-Z0-9]+", "_", value.strip().lower()).strip("_")
+    return safe or "value"
+
+
+def _infer_source_table(model: SemanticModel) -> str:
+    for dim in model.dimensions:
+        if dim.source_table:
+            return dim.source_table
+    for measure in model.measures:
+        if measure.source_table:
+            return measure.source_table
+    return "unknown_table"
 
 
 @router.post("/semantic/{model_id}/dimensions")
@@ -1349,4 +1475,3 @@ async def execute_source_query(source_id: str, request: SourceQueryRequest):
     except Exception as e:
         logger.error(f"Source query execution failed: {e}")
         raise HTTPException(status_code=400, detail=f"Query execution failed: {str(e)}")
-
