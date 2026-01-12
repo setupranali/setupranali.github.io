@@ -538,7 +538,7 @@ Direction B: Contract (YAML) → Semantic Model
 | POST | `/v1/modeling/query/semantic` | Execute semantic query |
 | POST | `/v1/modeling/query/sql` | Execute raw SQL |
 | POST | `/v1/modeling/query/explain` | Explain query |
-| POST | `/v1/modeling/expression/validate` | Validate expression |
+| POST | `/v1/modeling/query/validate-expression` | Validate expression |
 
 ---
 
@@ -612,4 +612,3 @@ app/db/
 
 *Document generated: January 2026*
 *Version: 1.0*
-

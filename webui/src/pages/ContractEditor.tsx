@@ -31,6 +31,7 @@ import axios from 'axios';
 import { modelingApi } from '../lib/modeling-api';
 
 const API_BASE = 'http://localhost:8080';
+const CONTRACT_STORAGE_PREFIX = 'contract:';
 
 interface ContractData {
   content: string;
@@ -255,9 +256,15 @@ export default function ContractEditor() {
       if (!selectedModelId) {
         return getDefaultContract();
       }
-      
+      const storedContract = getStoredContract(selectedModelId);
+      if (storedContract) {
+        return storedContract;
+      }
+
       try {
-        const response = await axios.get<ContractData>(`${API_BASE}/v1/contracts/${selectedModelId}`);
+        const response = await axios.get<ContractData>(
+          `${API_BASE}/v1/modeling/semantic/${selectedModelId}/yaml`
+        );
         return response.data;
       } catch (error) {
         // If no saved contract, generate from semantic model
@@ -276,11 +283,17 @@ export default function ContractEditor() {
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (yamlContent: string) => {
-      const endpoint = selectedModelId 
-        ? `${API_BASE}/v1/contracts/${selectedModelId}`
-        : `${API_BASE}/v1/contracts`;
-      const response = await axios.put(endpoint, { content: yamlContent });
-      return response.data;
+      const payload: ContractData = {
+        content: yamlContent,
+        lastModified: new Date().toISOString(),
+      };
+      if (selectedModelId) {
+        localStorage.setItem(
+          `${CONTRACT_STORAGE_PREFIX}${selectedModelId}`,
+          JSON.stringify(payload)
+        );
+      }
+      return payload;
     },
     onSuccess: () => {
       setHasChanges(false);
@@ -288,8 +301,6 @@ export default function ContractEditor() {
       queryClient.invalidateQueries({ queryKey: ['datasets'] });
     },
     onError: () => {
-      // Even if API fails, save locally for now
-      console.log('Contract saved locally (API not implemented yet)');
       setHasChanges(false);
     },
   });
@@ -297,27 +308,21 @@ export default function ContractEditor() {
   // Validate mutation
   const validateMutation = useMutation({
     mutationFn: async (yamlContent: string) => {
-      try {
-        const response = await axios.post<ValidationResult>(`${API_BASE}/v1/contracts/validate`, { content: yamlContent });
-        return response.data;
-      } catch (error) {
-        // Simple client-side validation
-        const result: ValidationResult = { valid: true, errors: [], warnings: [] };
-        
-        if (!yamlContent.includes('datasets:')) {
-          result.valid = false;
-          result.errors.push('Missing "datasets:" section');
-        }
-        
-        const lines = yamlContent.split('\n');
-        lines.forEach((line, index) => {
-          if (line.includes('\t')) {
-            result.warnings.push(`Line ${index + 1}: Tab characters detected. Use spaces for YAML indentation.`);
-          }
-        });
-        
-        return result;
+      const result: ValidationResult = { valid: true, errors: [], warnings: [] };
+
+      if (!yamlContent.includes('datasets:')) {
+        result.valid = false;
+        result.errors.push('Missing "datasets:" section');
       }
+
+      const lines = yamlContent.split('\n');
+      lines.forEach((line, index) => {
+        if (line.includes('\t')) {
+          result.warnings.push(`Line ${index + 1}: Tab characters detected. Use spaces for YAML indentation.`);
+        }
+      });
+
+      return result;
     },
     onSuccess: (data) => {
       setValidationResult(data);
@@ -848,3 +853,14 @@ datasets: []
   };
 }
 
+function getStoredContract(modelId: string): ContractData | null {
+  const stored = localStorage.getItem(`${CONTRACT_STORAGE_PREFIX}${modelId}`);
+  if (!stored) {
+    return null;
+  }
+  try {
+    return JSON.parse(stored) as ContractData;
+  } catch (error) {
+    return null;
+  }
+}
