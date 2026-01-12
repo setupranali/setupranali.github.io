@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
 import duckdb
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -38,6 +38,7 @@ from app.graphql_api import graphql_router
 from app.advanced_routes import router as advanced_router
 from app.ecosystem.routes import router as ecosystem_router
 from app.enterprise.routes import router as enterprise_router
+from app.modeling.routes import router as modeling_router
 from app.security import require_api_key, require_internal_admin, TenantContext
 from app.crypto import is_encryption_configured
 from app.rate_limit import limit_query, limit_odata, limit_sources
@@ -181,7 +182,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Restrict in production
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*", "X-API-Key"],
 )
 
@@ -225,6 +226,12 @@ app.include_router(
     tags=["Enterprise"]
 )
 
+# Modeling UI APIs (Schema introspection, ERD, Semantic Model, Query Planner)
+app.include_router(
+    modeling_router,
+    tags=["Modeling"]
+)
+
 
 # =============================================================================
 # DEMO DATA
@@ -245,12 +252,84 @@ def seed_demo_data():
       ) t(order_id, tenant_id, order_date, city, revenue, qty);
     """)
 
-seed_demo_data()
+# seed_demo_data()  # Disabled - uncomment to enable demo data
 
 
 # =============================================================================
 # PUBLIC ENDPOINTS
 # =============================================================================
+
+# API Key Management
+@app.get("/v1/api-keys", tags=["API Keys"])
+def list_api_keys():
+    """List all API keys (for admin purposes)."""
+    from app.security import _API_KEY_REGISTRY
+    
+    return {
+        "items": [
+            {
+                "key_id": record.key_id,
+                "name": record.name,
+                "tenant": record.tenant,
+                "role": record.role,
+                "status": record.status,
+                "created_at": record.created_at.isoformat() if record.created_at else None,
+                "last_used_at": record.last_used_at.isoformat() if record.last_used_at else None
+            }
+            for record in _API_KEY_REGISTRY.values()
+        ]
+    }
+
+
+@app.post("/v1/api-keys", tags=["API Keys"])
+def create_api_key(
+    name: str = Body(...),
+    tenant: str = Body("default"),
+    role: str = Body("user")
+):
+    """Create a new API key."""
+    import secrets
+    from app.security import _API_KEY_REGISTRY, APIKeyRecord
+    
+    # Generate a secure API key
+    api_key = f"ubi_{secrets.token_urlsafe(32)}"
+    key_id = f"key_{secrets.token_urlsafe(8)}"
+    
+    record = APIKeyRecord(
+        key_id=key_id,
+        name=name,
+        tenant=tenant,
+        role=role,
+        status="active",
+        created_at=datetime.now(timezone.utc)
+    )
+    
+    _API_KEY_REGISTRY[api_key] = record
+    
+    # Return the key only once - it won't be retrievable later
+    return {
+        "key_id": key_id,
+        "api_key": api_key,  # Only shown once!
+        "name": name,
+        "tenant": tenant,
+        "role": role,
+        "status": "active",
+        "warning": "Store this API key securely. It will not be shown again."
+    }
+
+
+@app.delete("/v1/api-keys/{key_id}", tags=["API Keys"])
+def delete_api_key(key_id: str):
+    """Revoke an API key."""
+    from app.security import _API_KEY_REGISTRY
+    
+    for api_key, record in list(_API_KEY_REGISTRY.items()):
+        if record.key_id == key_id:
+            record.status = "revoked"
+            return {"deleted": True, "key_id": key_id}
+    
+    raise HTTPException(status_code=404, detail=f"API key {key_id} not found")
+
 
 @app.get("/v1/health", tags=["Health"])
 def health():
@@ -617,20 +696,27 @@ def run_sql_query(
         
         if hasattr(result, 'fetchall'):
             rows = result.fetchall()
-            columns = [{"name": str(col), "type": "string"} for col in result.keys()]
+            # DuckDB uses description, SQLAlchemy uses keys()
+            if hasattr(result, 'description') and result.description:
+                columns = [{"name": d[0], "type": str(d[1]) if len(d) > 1 else "string"} for d in result.description]
+            elif hasattr(result, 'keys'):
+                columns = [{"name": str(col), "type": "string"} for col in result.keys()]
+            else:
+                columns = [{"name": f"col_{i}", "type": "string"} for i in range(len(rows[0]) if rows else 0)]
         else:
             rows = list(result)
             columns = [{"name": f"col_{i}", "type": "string"} for i in range(len(rows[0]) if rows else 0)]
         
         # Convert rows to dicts
         data = []
+        col_names = [c["name"] for c in columns]
         for row in rows:
             if hasattr(row, '_asdict'):
                 data.append(row._asdict())
             elif hasattr(row, 'keys'):
                 data.append(dict(row))
             else:
-                data.append({columns[i]["name"]: v for i, v in enumerate(row)})
+                data.append({col_names[i]: v for i, v in enumerate(row)})
         
         execution_time = int((time.time() - start_time) * 1000)
         
@@ -934,6 +1020,86 @@ def create_source(request: Request, payload: dict):
 def get_sources():
     """List all registered sources."""
     return {"items": list_sources()}
+
+
+@app.put("/v1/sources/{sourceId}", tags=["Sources"])
+def update_source_endpoint(request: Request, sourceId: str, payload: dict = Body(...)):
+    """Update a data source."""
+    from app.sources import update_source, get_source
+    
+    request_id = getattr(request.state, "request_id", None)
+    
+    try:
+        # Verify source exists
+        source = get_source(sourceId)
+        if not source:
+            raise HTTPException(status_code=404, detail=f"Source {sourceId} not found")
+        
+        # Build updates dict
+        updates = {}
+        if "name" in payload:
+            updates["name"] = payload["name"]
+        if "type" in payload:
+            updates["type"] = payload["type"]
+        if "config" in payload:
+            updates["config"] = payload["config"]
+        if "status" in payload:
+            updates["status"] = payload["status"]
+        
+        if not updates:
+            raise HTTPException(status_code=400, detail="No valid fields to update")
+        
+        updated_source = update_source(sourceId, updates)
+        return updated_source
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[{request_id}] Failed to update source {sourceId}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update source: {str(e)}")
+
+
+@app.get("/v1/sources/{sourceId}", tags=["Sources"])
+def get_source_endpoint(request: Request, sourceId: str):
+    """Get a single data source by ID."""
+    from app.sources import get_source
+    
+    request_id = getattr(request.state, "request_id", None)
+    
+    try:
+        source = get_source(sourceId)
+        if not source:
+            raise HTTPException(status_code=404, detail=f"Source {sourceId} not found")
+        return source
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[{request_id}] Failed to get source {sourceId}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get source: {str(e)}")
+
+
+@app.delete("/v1/sources/{sourceId}", tags=["Sources"])
+def remove_source(request: Request, sourceId: str):
+    """Delete a data source."""
+    from app.sources import delete_source, get_source
+    
+    request_id = getattr(request.state, "request_id", None)
+    
+    try:
+        # Verify source exists
+        source = get_source(sourceId)
+        if not source:
+            raise HTTPException(status_code=404, detail=f"Source {sourceId} not found")
+        
+        deleted = delete_source(sourceId)
+        if deleted:
+            return {"deleted": True, "id": sourceId}
+        else:
+            raise HTTPException(status_code=404, detail=f"Source {sourceId} not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[{request_id}] Failed to delete source {sourceId}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete source: {str(e)}")
 
 
 @app.post("/v1/sources/{sourceId}/test", tags=["Sources"])

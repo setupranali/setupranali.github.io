@@ -229,7 +229,8 @@ def init_demo_data():
 
 
 # Initialize demo data on import (if DuckDB available)
-try:
-    init_demo_data()
-except Exception as e:
-    logger.warning(f"Could not initialize demo data: {e}")
+# Disabled - uncomment to enable demo data
+# try:
+#     init_demo_data()
+# except Exception as e:
+#     logger.warning(f"Could not initialize demo data: {e}")

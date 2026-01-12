@@ -46,11 +46,29 @@ export default function Dashboard() {
     queryKey: ['health'],
     queryFn: api.getHealth,
     refetchInterval: 30000,
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   const { data: datasets } = useQuery({
     queryKey: ['datasets'],
     queryFn: api.getDatasets,
+    refetchOnMount: 'always',
+    staleTime: 0,
+  });
+
+  const { data: sources } = useQuery({
+    queryKey: ['sources'],
+    queryFn: api.getSources,
+    refetchOnMount: 'always',
+    staleTime: 0,
+  });
+
+  const { data: apiKeys } = useQuery({
+    queryKey: ['apiKeys'],
+    queryFn: api.getApiKeys,
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   const stats = [
@@ -62,13 +80,13 @@ export default function Dashboard() {
     },
     {
       name: 'Data Sources',
-      value: 3,
+      value: sources?.items?.length || 0,
       icon: Server,
       color: 'text-green-600 bg-green-100 dark:bg-green-900/50',
     },
     {
       name: 'API Keys',
-      value: 5,
+      value: apiKeys?.items?.length || 0,
       icon: Key,
       color: 'text-purple-600 bg-purple-100 dark:bg-purple-900/50',
     },

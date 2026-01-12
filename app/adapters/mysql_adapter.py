@@ -120,6 +120,9 @@ class MySQLAdapter(BaseAdapter):
         self.user = config["user"]
         self.password = config["password"]
         
+        # Catalog for StarRocks/Doris/Trino
+        self.catalog = config.get("catalog", "")
+        
         # Connection settings
         self.charset = config.get("charset", "utf8mb4")
         self.collation = config.get("collation", "utf8mb4_unicode_ci")
@@ -145,12 +148,15 @@ class MySQLAdapter(BaseAdapter):
         
         self._pool = None
     
-    def _build_connection_params(self) -> Dict[str, Any]:
-        """Build connection parameters dict."""
+    def _build_connection_params(self, include_database: bool = True) -> Dict[str, Any]:
+        """Build connection parameters dict.
+        
+        Args:
+            include_database: If False, don't include database in params (for catalog-first connections)
+        """
         params = {
             "host": self.host,
             "port": self.port,
-            "database": self.database,
             "user": self.user,
             "password": self.password,
             "charset": self.charset,
@@ -159,6 +165,11 @@ class MySQLAdapter(BaseAdapter):
             "connect_timeout": self.connect_timeout,
             "autocommit": self.autocommit,
         }
+        
+        # Only include database if requested and no catalog is specified
+        # When catalog is specified, we connect first, set catalog, then USE database
+        if include_database and not self.catalog:
+            params["database"] = self.database
         
         # SSL configuration
         if not self.ssl_disabled:
@@ -184,7 +195,8 @@ class MySQLAdapter(BaseAdapter):
         try:
             connection_params = self._build_connection_params()
             
-            logger.info(f"Connecting to MySQL: {self.host}:{self.port}/{self.database}")
+            catalog_info = f" (catalog: {self.catalog})" if self.catalog else ""
+            logger.info(f"Connecting to MySQL: {self.host}:{self.port}/{self.database}{catalog_info}")
             
             if self.pool_size > 0:
                 # Use connection pooling
@@ -193,15 +205,18 @@ class MySQLAdapter(BaseAdapter):
                     pool_size=self.pool_size,
                     **connection_params
                 )
-                # Test connection
+                # Test connection and initialize catalog/database
                 conn = self._pool.get_connection()
+                self._initialize_connection(conn)
                 conn.close()
             else:
                 # Single connection (no pooling)
                 self._connection = mysql.connector.connect(**connection_params)
+                # Initialize catalog and database
+                self._initialize_connection(self._connection)
             
             self._connected = True
-            logger.info(f"MySQL connected: {self.host}:{self.port}/{self.database}")
+            logger.info(f"MySQL connected: {self.host}:{self.port}/{self.database}{catalog_info}")
             
         except Exception as e:
             raise ConnectionError(
@@ -209,6 +224,43 @@ class MySQLAdapter(BaseAdapter):
                 engine=self.ENGINE,
                 original_error=e
             )
+    
+    def _initialize_connection(self, conn) -> None:
+        """Initialize connection with catalog and database settings."""
+        cursor = conn.cursor()
+        try:
+            # If catalog is specified, set it first (for StarRocks/Doris)
+            if self.catalog:
+                logger.info(f"Setting catalog to: {self.catalog}")
+                cursor.execute(f"SET CATALOG {self.catalog}")
+                
+                # Now switch to the database within the catalog context
+                if self.database:
+                    logger.info(f"Switching to database: {self.database}")
+                    cursor.execute(f"USE {self.database}")
+        except Exception as e:
+            raise ConnectionError(
+                f"Failed to initialize connection (catalog={self.catalog}, database={self.database}): {e}",
+                engine=self.ENGINE,
+                original_error=e
+            )
+        finally:
+            cursor.close()
+    
+    def _set_catalog(self, conn) -> None:
+        """Set catalog for StarRocks/Doris connections (legacy method)."""
+        if not self.catalog:
+            return
+        try:
+            cursor = conn.cursor()
+            # StarRocks/Doris use SET CATALOG
+            cursor.execute(f"SET CATALOG {self.catalog}")
+            if self.database:
+                cursor.execute(f"USE {self.database}")
+            cursor.close()
+            logger.info(f"Catalog set to: {self.catalog}")
+        except Exception as e:
+            logger.warning(f"Failed to set catalog '{self.catalog}': {e}")
     
     def disconnect(self) -> None:
         """Close MySQL connection(s)."""
@@ -227,7 +279,11 @@ class MySQLAdapter(BaseAdapter):
     def _get_connection(self):
         """Get a connection from pool or return single connection."""
         if self._pool:
-            return self._pool.get_connection()
+            conn = self._pool.get_connection()
+            # Initialize catalog and database for each connection from pool
+            if self.catalog:
+                self._initialize_connection(conn)
+            return conn
         return self._connection
     
     def _release_connection(self, conn):

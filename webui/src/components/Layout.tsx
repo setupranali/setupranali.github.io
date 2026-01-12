@@ -5,7 +5,7 @@ import {
   Server, 
   Key, 
   Play, 
-  FileCode, 
+  FileText, 
   BarChart3,
   Settings,
   Menu,
@@ -23,7 +23,7 @@ const navigation = [
   { name: 'Data Sources', href: '/sources', icon: Server },
   { name: 'API Keys', href: '/api-keys', icon: Key },
   { name: 'Query Playground', href: '/playground', icon: Play },
-  { name: 'Catalog Editor', href: '/catalog', icon: FileCode },
+  { name: 'Contracts', href: '/contracts', icon: FileText },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];

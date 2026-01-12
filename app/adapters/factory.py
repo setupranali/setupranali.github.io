@@ -282,6 +282,8 @@ def _register_builtin_adapters():
         from app.adapters.mysql_adapter import MySQLAdapter
         register_adapter("mysql", MySQLAdapter)
         register_adapter("mariadb", MySQLAdapter)  # MariaDB compatible
+        register_adapter("starrocks", MySQLAdapter)  # StarRocks uses MySQL protocol
+        register_adapter("doris", MySQLAdapter)  # Apache Doris uses MySQL protocol
     except ImportError as e:
         logger.debug(f"MySQL adapter not available: {e}")
     

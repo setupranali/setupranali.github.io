@@ -40,6 +40,12 @@ export const api = {
     return data;
   },
 
+  // API Keys
+  getApiKeys: async () => {
+    const { data } = await client.get('/v1/api-keys');
+    return data;
+  },
+
   createSource: async (source: any) => {
     const { data } = await client.post('/v1/sources', source);
     return data;
