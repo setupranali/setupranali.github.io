@@ -558,6 +558,7 @@ body {
   padding: 0.5rem 1rem;
   margin: 0.125rem 0;
   font-size: var(--md-font-sm);
+  color: var(--md-typeset-color);
 }
 
 .md-nav__link:hover {
