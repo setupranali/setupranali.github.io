@@ -530,13 +530,22 @@ export const useModelingStore = create<ModelingStore>()(
         })),
       
       addCalculatedField: (calc) =>
-        set((state) => ({
-          semanticModels: state.semanticModels.map((model) =>
-            model.id === state.activeSemanticId
-              ? { ...model, calculatedFields: [...model.calculatedFields, calc] }
-              : model
-          ),
-        })),
+        set((state) => {
+          console.log('Store: addCalculatedField called with:', { calc, activeSemanticId: state.activeSemanticId });
+          if (!state.activeSemanticId) {
+            console.warn('Store: No active semantic model ID, cannot add calculated field');
+            return state;
+          }
+          const updated = {
+            semanticModels: state.semanticModels.map((model) =>
+              model.id === state.activeSemanticId
+                ? { ...model, calculatedFields: [...model.calculatedFields, calc] }
+                : model
+            ),
+          };
+          console.log('Store: Updated semantic models:', updated);
+          return updated;
+        }),
       
       removeCalculatedField: (calcId) =>
         set((state) => ({

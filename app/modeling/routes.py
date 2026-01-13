@@ -345,8 +345,14 @@ async def get_schemas(source_id: str):
     """
     try:
         adapter = _get_adapter_for_source(source_id)
+        # Get source type to help with engine-specific queries
+        source_type = _get_source_type(source_id)
+        logger.info(f"Fetching schemas for source {source_id} (type: {source_type}, adapter engine: {adapter.ENGINE})")
+        
         introspector = SchemaIntrospector(adapter)
         schemas = introspector.get_schemas()
+        
+        logger.info(f"Found {len(schemas)} schemas for source {source_id}")
         
         return SchemaResponse(
             schemas=[s.to_dict(include_tables=False) for s in schemas]
@@ -1057,65 +1063,114 @@ async def remove_dimension(model_id: str, dimension_id: str):
 @router.post("/semantic/{model_id}/measures")
 async def add_measure(model_id: str, request: MeasureRequest):
     """Add a measure to the semantic model."""
-    model = semantic_manager.get(model_id)
-    if not model:
-        raise HTTPException(status_code=404, detail="Semantic model not found")
-    
-    # Validate expression
-    is_valid, errors = ExpressionValidator.validate(request.expression)
-    if not is_valid:
-        raise HTTPException(status_code=400, detail=f"Invalid expression: {errors}")
-    
-    measure = Measure(
-        id=str(uuid.uuid4()),
-        name=request.name,
-        expression=request.expression,
-        aggregation=AggregationType(request.aggregation),
-        source_table=request.sourceTable,
-        description=request.description,
-        format_string=request.formatString,
-    )
-    
-    model.measures.append(measure)
-    semantic_manager.update(model)
-    
-    return measure.to_dict()
+    try:
+        model = semantic_manager.get(model_id)
+        if not model:
+            raise HTTPException(status_code=404, detail="Semantic model not found")
+        
+        # Validate expression
+        is_valid, errors = ExpressionValidator.validate(request.expression)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=f"Invalid expression: {errors}")
+        
+        # Convert aggregation to enum (handle case-insensitive and spaces)
+        try:
+            # Normalize: convert to uppercase and replace spaces with underscores
+            agg_normalized = request.aggregation.upper().replace(" ", "_")
+            aggregation = AggregationType(agg_normalized)
+        except (ValueError, AttributeError) as e:
+            logger.error(f"Invalid aggregation type: {request.aggregation}, normalized: {agg_normalized if 'agg_normalized' in locals() else 'N/A'}, error: {e}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid aggregation type: {request.aggregation}. Must be one of: {[a.value for a in AggregationType]}"
+            )
+        
+        measure = Measure(
+            id=str(uuid.uuid4()),
+            name=request.name,
+            expression=request.expression,
+            aggregation=aggregation,
+            source_table=request.sourceTable,
+            description=request.description,
+            format_string=request.formatString,
+        )
+        
+        model.measures.append(measure)
+        semantic_manager.update(model)
+        
+        return measure.to_dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding measure to model {model_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to add measure: {str(e)}")
 
 
 @router.put("/semantic/{model_id}/measures/{measure_id}")
 async def update_measure(model_id: str, measure_id: str, request: MeasureRequest):
     """Update a measure in the semantic model."""
-    model = semantic_manager.get(model_id)
-    if not model:
-        raise HTTPException(status_code=404, detail="Semantic model not found")
-    
-    # Find the measure
-    measure_idx = None
-    for i, m in enumerate(model.measures):
-        if m.id == measure_id:
-            measure_idx = i
-            break
-    
-    if measure_idx is None:
-        raise HTTPException(status_code=404, detail="Measure not found")
-    
-    # Validate expression
-    is_valid, errors = ExpressionValidator.validate(request.expression)
-    if not is_valid:
-        raise HTTPException(status_code=400, detail=f"Invalid expression: {errors}")
-    
-    # Update the measure
-    model.measures[measure_idx].name = request.name
-    model.measures[measure_idx].expression = request.expression
-    model.measures[measure_idx].aggregation = AggregationType(request.aggregation)
-    model.measures[measure_idx].source_table = request.sourceTable
-    model.measures[measure_idx].description = request.description
-    if request.formatString:
-        model.measures[measure_idx].format_string = request.formatString
-    
-    semantic_manager.update(model)
-    
-    return model.measures[measure_idx].to_dict()
+    try:
+        logger.info(f"Updating measure {measure_id} in model {model_id}. Request: name={request.name}, aggregation={request.aggregation}, expression={request.expression}")
+        
+        model = semantic_manager.get(model_id)
+        if not model:
+            raise HTTPException(status_code=404, detail="Semantic model not found")
+        
+        # Find the measure
+        measure_idx = None
+        for i, m in enumerate(model.measures):
+            if m.id == measure_id:
+                measure_idx = i
+                break
+        
+        if measure_idx is None:
+            raise HTTPException(status_code=404, detail="Measure not found")
+        
+        # Validate expression
+        is_valid, errors = ExpressionValidator.validate(request.expression)
+        if not is_valid:
+            logger.warning(f"Expression validation failed for measure {measure_id}: {errors}")
+            raise HTTPException(status_code=400, detail=f"Invalid expression: {errors}")
+        
+        # Convert aggregation to enum (handle case-insensitive and spaces)
+        if not request.aggregation:
+            logger.error(f"Missing aggregation type in request")
+            raise HTTPException(status_code=400, detail="Aggregation type is required")
+        
+        try:
+            # Normalize: convert to uppercase and replace spaces with underscores
+            agg_normalized = str(request.aggregation).upper().replace(" ", "_")
+            aggregation = AggregationType(agg_normalized)
+            logger.debug(f"Aggregation normalized: {request.aggregation} -> {agg_normalized} -> {aggregation.value}")
+        except (ValueError, AttributeError) as e:
+            logger.error(f"Invalid aggregation type: {request.aggregation}, normalized: {agg_normalized if 'agg_normalized' in locals() else 'N/A'}, error: {e}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid aggregation type: {request.aggregation}. Must be one of: {[a.value for a in AggregationType]}"
+            )
+        
+        # Update the measure
+        model.measures[measure_idx].name = request.name
+        model.measures[measure_idx].expression = request.expression
+        model.measures[measure_idx].aggregation = aggregation
+        model.measures[measure_idx].source_table = request.sourceTable
+        model.measures[measure_idx].description = request.description
+        if request.formatString:
+            model.measures[measure_idx].format_string = request.formatString
+        
+        try:
+            updated_model = semantic_manager.update(model)
+            logger.info(f"Successfully updated measure {measure_id} in model {model_id}")
+        except Exception as update_error:
+            logger.error(f"Failed to update semantic model {model_id}: {update_error}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to save measure update: {str(update_error)}")
+        
+        return model.measures[measure_idx].to_dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating measure {measure_id} in model {model_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to update measure: {str(e)}")
 
 
 @router.delete("/semantic/{model_id}/measures/{measure_id}")
@@ -1134,31 +1189,47 @@ async def remove_measure(model_id: str, measure_id: str):
 @router.post("/semantic/{model_id}/calculated")
 async def add_calculated_field(model_id: str, request: CalculatedFieldRequest):
     """Add a calculated field."""
-    model = semantic_manager.get(model_id)
-    if not model:
-        raise HTTPException(status_code=404, detail="Semantic model not found")
-    
-    # Validate expression
-    is_valid, errors = ExpressionValidator.validate(request.expression)
-    if not is_valid:
-        raise HTTPException(status_code=400, detail=f"Invalid expression: {errors}")
-    
-    # Extract referenced fields
-    refs = ExpressionValidator.extract_field_references(request.expression)
-    
-    calc = CalculatedField(
-        id=str(uuid.uuid4()),
-        name=request.name,
-        expression=request.expression,
-        description=request.description,
-        result_type=request.resultType,
-        referenced_fields=refs,
-    )
-    
-    model.calculated_fields.append(calc)
-    semantic_manager.update(model)
-    
-    return calc.to_dict()
+    try:
+        logger.info(f"Adding calculated field to model {model_id}: name={request.name}, expression={request.expression}")
+        
+        model = semantic_manager.get(model_id)
+        if not model:
+            raise HTTPException(status_code=404, detail="Semantic model not found")
+        
+        # Validate expression
+        is_valid, errors = ExpressionValidator.validate(request.expression)
+        if not is_valid:
+            logger.warning(f"Expression validation failed for calculated field '{request.name}': {errors}")
+            raise HTTPException(status_code=400, detail=f"Invalid expression: {errors}")
+        
+        # Extract referenced fields
+        refs = ExpressionValidator.extract_field_references(request.expression)
+        logger.debug(f"Extracted field references: {refs}")
+        
+        calc = CalculatedField(
+            id=str(uuid.uuid4()),
+            name=request.name,
+            expression=request.expression,
+            description=request.description,
+            result_type=request.resultType or "number",
+            referenced_fields=refs,
+        )
+        
+        model.calculated_fields.append(calc)
+        
+        try:
+            updated_model = semantic_manager.update(model)
+            logger.info(f"Successfully added calculated field '{request.name}' to model {model_id}")
+        except Exception as update_error:
+            logger.error(f"Failed to update semantic model {model_id}: {update_error}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to save calculated field: {str(update_error)}")
+        
+        return calc.to_dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding calculated field to model {model_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to add calculated field: {str(e)}")
 
 
 @router.put("/semantic/{model_id}/calculated/{field_id}")
@@ -1305,9 +1376,11 @@ async def execute_semantic_query(
         # PostgreSQL, DuckDB, Snowflake, BigQuery use double quotes
         quote_char = '"'
     
-    # Plan query with the appropriate quote character
+    # Plan query with the appropriate quote character and dialect
     try:
-        planner = QueryPlanner(erd_model, semantic_model, quote_char=quote_char)
+        # Determine dialect from source type for SQLGlot conversion
+        planner_dialect = source_type if source_type else "postgres"
+        planner = QueryPlanner(erd_model, semantic_model, quote_char=quote_char, dialect=planner_dialect)
         result = planner.plan(sem_query)
     except Exception as e:
         logger.error(f"Query planning failed: {e}")
@@ -1317,6 +1390,8 @@ async def execute_semantic_query(
         )
     
     try:
+        # Log the generated SQL for debugging
+        logger.info(f"Executing semantic query SQL (dialect: {planner_dialect}): {result.sql}")
         exec_result = adapter.execute(result.sql, result.params)
         return {
             "rows": exec_result.rows,
@@ -1328,7 +1403,7 @@ async def execute_semantic_query(
             "warnings": result.warnings,
         }
     except Exception as e:
-        logger.error(f"Query execution failed: {e}")
+        logger.error(f"Query execution failed. SQL: {result.sql}, Error: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=f"Query execution failed: {str(e)}")
 
 

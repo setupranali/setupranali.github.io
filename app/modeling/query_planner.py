@@ -264,26 +264,53 @@ class QueryPlanner:
             group_by_parts.append(f"{dim.source_table}.{col_expr}")
             tables_needed.add(dim.source_table)
         
-        # Process measures
+        # Process measures (including calculated fields)
+        # First pass: collect ALL measures (regular + those referenced by calculated fields) and their SQL expressions
+        measure_expressions = {}  # measure_name -> SQL expression
+        all_measures_to_process = set(query.measures)
+        
+        # Find all measures referenced by calculated fields
+        for measure_name in query.measures:
+            calc = self.semantic.get_calculated_field(measure_name)
+            if calc:
+                # Add referenced measures to the set
+                for ref in calc.referenced_fields:
+                    measure = self.semantic.get_measure(ref)
+                    if measure:
+                        all_measures_to_process.add(ref)
+        
+        # Build expressions for all measures (regular + referenced)
+        for measure_name in all_measures_to_process:
+            measure = self.semantic.get_measure(measure_name)
+            if measure:
+                measure_expr = self._build_measure_expression(measure)
+                measure_expressions[measure_name] = measure_expr
+                if measure.source_table:
+                    tables_needed.add(measure.source_table)
+        
+        # Second pass: process all measures (regular + calculated) for SELECT clause
         for measure_name in query.measures:
             measure = self.semantic.get_measure(measure_name)
-            if not measure:
+            if measure:
+                # Regular measure
+                alias = self._quote_identifier(measure_name)
+                select_parts.append(f"{measure_expressions[measure_name]} AS {alias}")
+            else:
                 # Check calculated fields
                 calc = self.semantic.get_calculated_field(measure_name)
                 if calc:
-                    expr = self._resolve_calculated_field(calc)
+                    # Resolve calculated field, using measure expressions from first pass
+                    expr = self._resolve_calculated_field(calc, measure_expressions)
                     alias = self._quote_identifier(measure_name)
                     select_parts.append(f"{expr} AS {alias}")
+                    # Extract tables from referenced measures
+                    for ref in calc.referenced_fields:
+                        measure = self.semantic.get_measure(ref)
+                        if measure and measure.source_table:
+                            tables_needed.add(measure.source_table)
                     continue
                 warnings.append(f"Unknown measure: {measure_name}")
                 continue
-            
-            alias = self._quote_identifier(measure_name)
-            # Build measure expression with table-qualified column reference
-            measure_expr = self._build_measure_expression(measure)
-            select_parts.append(f"{measure_expr} AS {alias}")
-            if measure.source_table:
-                tables_needed.add(measure.source_table)
         
         if not select_parts:
             return GeneratedSQL(
@@ -396,9 +423,15 @@ class QueryPlanner:
         )
         
         # Parse into AST
-        ast = sqlglot.parse_one(manual_sql, read="generic")
+        # Use None for read to auto-detect, or use generic for maximum compatibility
+        try:
+            ast = sqlglot.parse_one(manual_sql, read=None)
+        except Exception:
+            # Fallback to generic if auto-detect fails
+            ast = sqlglot.parse_one(manual_sql, read="generic")
         
         # Convert to target dialect
+        # SQLGlot will automatically convert COUNT(DISTINCT ...) to the correct syntax for each dialect
         sql = ast.sql(dialect=self.sql_builder.target_dialect, pretty=True)
         
         return sql
@@ -587,23 +620,50 @@ class QueryPlanner:
                 "value": f.value
             }
     
-    def _resolve_calculated_field(self, calc: CalculatedField) -> str:
-        """Resolve calculated field expression to SQL."""
+    def _resolve_calculated_field(self, calc: CalculatedField, measure_expressions: Optional[Dict[str, str]] = None) -> str:
+        """
+        Resolve calculated field expression to SQL.
+        
+        Args:
+            calc: Calculated field to resolve
+            measure_expressions: Optional dict of measure_name -> SQL expression
+                                (used when measures are already in the query)
+        """
         expression = calc.expression
+        logger.debug(f"Resolving calculated field '{calc.name}' with expression: {expression}, referenced_fields: {calc.referenced_fields}")
         
         # Build field map
         field_map = {}
         for ref in calc.referenced_fields:
             dim = self.semantic.get_dimension(ref)
             if dim:
-                field_map[ref] = f"{dim.source_table}.{dim.source_column}"
+                # For dimensions, use table-qualified column
+                col_expr = self._quote_identifier(dim.source_column)
+                field_map[ref] = f"{dim.source_table}.{col_expr}"
+                logger.debug(f"  Resolved dimension '{ref}' -> {field_map[ref]}")
                 continue
             
-            measure = self.semantic.get_measure(ref)
-            if measure:
-                field_map[ref] = measure.to_sql()
+            # For measures, check if we have a pre-computed expression
+            if measure_expressions and ref in measure_expressions:
+                # Use the measure expression from the query (already includes aggregation)
+                field_map[ref] = measure_expressions[ref]
+                logger.debug(f"  Resolved measure '{ref}' from query -> {field_map[ref]}")
+            else:
+                # Fallback: get measure and build expression
+                measure = self.semantic.get_measure(ref)
+                if measure:
+                    # Build measure expression with table qualification
+                    field_map[ref] = self._build_measure_expression(measure)
+                    logger.debug(f"  Resolved measure '{ref}' from semantic model -> {field_map[ref]}")
+                else:
+                    # Unknown reference - log warning but continue
+                    logger.warning(f"Calculated field '{calc.name}' references unknown field: {ref}. Available measures: {[m.name for m in self.semantic.measures]}, Available dimensions: {[d.name for d in self.semantic.dimensions]}")
+                    # Try to use as-is (might be a column name)
+                    field_map[ref] = self._quote_identifier(ref)
         
-        return ExpressionValidator.substitute_fields(expression, field_map)
+        resolved = ExpressionValidator.substitute_fields(expression, field_map)
+        logger.info(f"Resolved calculated field '{calc.name}': {expression} -> {resolved}")
+        return resolved
     
     def _quote_identifier(self, identifier: str) -> str:
         """Quote an identifier."""
@@ -618,8 +678,9 @@ class QueryPlanner:
         
         Parses the measure expression and adds table prefix to column references.
         E.g., SUM(amount) -> SUM(schema.table.`amount`)
+        COUNT_DISTINCT -> COUNT(DISTINCT schema.table.`column`)
         """
-        expr = measure.expression
+        expr = measure.expression.strip()
         
         # If expression already contains the table reference, use as-is
         if measure.source_table and measure.source_table in expr:
@@ -627,6 +688,29 @@ class QueryPlanner:
         
         # For simple expressions like "SUM(column_name)", add table prefix
         agg = measure.aggregation.value
+        
+        # Handle COUNT_DISTINCT specially - it should be COUNT(DISTINCT ...) not COUNT_DISTINCT(...)
+        if agg == 'COUNT_DISTINCT':
+            # If it's a simple column reference, qualify it
+            if measure.source_table and '(' not in expr and '.' not in expr:
+                qualified_col = f"{measure.source_table}.{self._quote_identifier(expr)}"
+                return f"COUNT(DISTINCT {qualified_col})"
+            # If expression already has COUNT(DISTINCT ...), check if it needs qualification
+            if 'COUNT(DISTINCT' in expr.upper() or 'COUNT (DISTINCT' in expr.upper():
+                # Extract the column from COUNT(DISTINCT column)
+                import re
+                match = re.search(r'COUNT\s*\(\s*DISTINCT\s+(.+?)\s*\)', expr, re.IGNORECASE)
+                if match and measure.source_table:
+                    col = match.group(1).strip()
+                    if '.' not in col and '(' not in col:
+                        qualified_col = f"{measure.source_table}.{self._quote_identifier(col)}"
+                        return f"COUNT(DISTINCT {qualified_col})"
+                return expr
+            # Otherwise wrap the expression
+            if measure.source_table and '.' not in expr:
+                qualified_col = f"{measure.source_table}.{self._quote_identifier(expr)}"
+                return f"COUNT(DISTINCT {qualified_col})"
+            return f"COUNT(DISTINCT {expr})"
         
         # Try to extract the column name from the expression
         # Handle patterns like: AGG(column), AGG(DISTINCT column), column
@@ -653,9 +737,37 @@ class QueryPlanner:
         # If we can't parse, check if it's a simple column reference
         if measure.source_table and '(' not in expr and '.' not in expr:
             # Simple expression - just a column name
-            return f"{agg}({measure.source_table}.{self._quote_identifier(expr)})"
+            qualified_col = f"{measure.source_table}.{self._quote_identifier(expr)}"
+            if agg == 'NONE':
+                # No aggregation - just return the qualified column
+                return qualified_col
+            else:
+                # Apply aggregation
+                return f"{agg}({qualified_col})"
         
-        # Fall back to original expression
+        # If expression doesn't have table qualification but we have a source_table, try to qualify it
+        if measure.source_table and '.' not in expr and '(' not in expr:
+            # It's a bare column name - qualify it
+            qualified_col = f"{measure.source_table}.{self._quote_identifier(expr)}"
+            if agg == 'NONE':
+                return qualified_col
+            else:
+                return f"{agg}({qualified_col})"
+        
+        # Last resort: if we have a source_table but expression isn't qualified, try to qualify it
+        # This handles cases where expr might be a complex expression without table qualification
+        if measure.source_table and '.' not in expr:
+            logger.warning(f"Measure '{measure.name}' expression '{expr}' doesn't have table qualification. Attempting to qualify.")
+            # Try to find and qualify column references in the expression
+            # This is a simple heuristic - for complex expressions, the user should provide qualified names
+            qualified_col = f"{measure.source_table}.{self._quote_identifier(expr)}"
+            if agg == 'NONE':
+                return qualified_col
+            else:
+                return f"{agg}({qualified_col})"
+        
+        # Fall back to original expression (might already be fully qualified or we can't determine)
+        logger.warning(f"Measure '{measure.name}' expression '{expr}' may not be table-qualified. source_table: {measure.source_table}")
         return expr
     
     def explain(self, query: SemanticQuery) -> Dict[str, Any]:

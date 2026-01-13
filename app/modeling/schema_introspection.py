@@ -134,6 +134,8 @@ class SchemaIntrospector:
     SCHEMA_QUERIES = {
         "postgres": "SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')",
         "mysql": "SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')",
+        "starrocks": "SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')",  # StarRocks uses MySQL protocol
+        "doris": "SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')",  # Doris also uses MySQL protocol
         "snowflake": "SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('INFORMATION_SCHEMA')",
         "bigquery": "SELECT schema_name FROM INFORMATION_SCHEMA.SCHEMATA",
         "redshift": "SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema')",
@@ -153,6 +155,18 @@ class SchemaIntrospector:
             ORDER BY table_name
         """,
         "mysql": """
+            SELECT table_name, table_type 
+            FROM information_schema.tables 
+            WHERE table_schema = %s
+            ORDER BY table_name
+        """,
+        "starrocks": """
+            SELECT table_name, table_type 
+            FROM information_schema.tables 
+            WHERE table_schema = %s
+            ORDER BY table_name
+        """,
+        "doris": """
             SELECT table_name, table_type 
             FROM information_schema.tables 
             WHERE table_schema = %s
@@ -236,6 +250,48 @@ class SchemaIntrospector:
             ORDER BY c.ordinal_position
         """,
         "mysql": """
+            SELECT 
+                c.column_name,
+                c.data_type,
+                c.is_nullable,
+                c.column_default,
+                c.ordinal_position,
+                c.character_maximum_length,
+                c.numeric_precision,
+                c.numeric_scale,
+                CASE WHEN c.column_key = 'PRI' THEN 1 ELSE 0 END AS is_primary_key,
+                CONCAT(kcu.referenced_table_schema, '.', kcu.referenced_table_name, '.', kcu.referenced_column_name) AS fk_ref
+            FROM information_schema.columns c
+            LEFT JOIN information_schema.key_column_usage kcu 
+                ON c.table_schema = kcu.table_schema 
+                AND c.table_name = kcu.table_name 
+                AND c.column_name = kcu.column_name
+                AND kcu.referenced_table_name IS NOT NULL
+            WHERE c.table_schema = %s AND c.table_name = %s
+            ORDER BY c.ordinal_position
+        """,
+        "starrocks": """
+            SELECT 
+                c.column_name,
+                c.data_type,
+                c.is_nullable,
+                c.column_default,
+                c.ordinal_position,
+                c.character_maximum_length,
+                c.numeric_precision,
+                c.numeric_scale,
+                CASE WHEN c.column_key = 'PRI' THEN 1 ELSE 0 END AS is_primary_key,
+                CONCAT(kcu.referenced_table_schema, '.', kcu.referenced_table_name, '.', kcu.referenced_column_name) AS fk_ref
+            FROM information_schema.columns c
+            LEFT JOIN information_schema.key_column_usage kcu 
+                ON c.table_schema = kcu.table_schema 
+                AND c.table_name = kcu.table_name 
+                AND c.column_name = kcu.column_name
+                AND kcu.referenced_table_name IS NOT NULL
+            WHERE c.table_schema = %s AND c.table_name = %s
+            ORDER BY c.ordinal_position
+        """,
+        "doris": """
             SELECT 
                 c.column_name,
                 c.data_type,
@@ -381,23 +437,66 @@ class SchemaIntrospector:
         Returns:
             List of SchemaInfo objects
         """
+        # For StarRocks/Doris with catalog, try SHOW DATABASES first (works better with catalogs)
+        # Check if adapter has catalog attribute (StarRocks/Doris)
+        has_catalog = hasattr(self.adapter, 'catalog') and self.adapter.catalog
+        
+        # Try SHOW DATABASES first for MySQL-based engines (especially StarRocks/Doris with catalogs)
+        if self.engine in ("mysql", "starrocks", "doris") and has_catalog:
+            try:
+                logger.debug(f"Using SHOW DATABASES for {self.engine} with catalog {self.adapter.catalog}")
+                result = self.adapter.execute("SHOW DATABASES")
+                schemas = []
+                for row in result.rows:
+                    # SHOW DATABASES returns rows with 'Database' column
+                    name = row.get("Database") or (list(row.values())[0] if row.values() else None)
+                    if name and name not in ('information_schema', 'mysql', 'performance_schema', 'sys'):
+                        schemas.append(SchemaInfo(name=name))
+                logger.debug(f"SHOW DATABASES returned {len(schemas)} schemas")
+                if schemas:
+                    return schemas
+            except Exception as e:
+                logger.warning(f"SHOW DATABASES failed, trying information_schema: {e}")
+        
+        # Standard query from SCHEMA_QUERIES
         query = self.SCHEMA_QUERIES.get(self.engine)
         if not query:
             # Fallback for unsupported engines
             query = "SELECT schema_name FROM information_schema.schemata"
         
         try:
+            logger.debug(f"Executing schema query for engine {self.engine}: {query}")
             result = self.adapter.execute(query)
+            logger.debug(f"Schema query returned {len(result.rows)} rows")
+            
             schemas = []
             for row in result.rows:
                 # Handle different column names
-                name = row.get("schema_name") or row.get("name") or row.get("databaseName") or list(row.values())[0]
-                schemas.append(SchemaInfo(name=name))
-            return schemas
+                name = row.get("schema_name") or row.get("name") or row.get("databaseName") or (list(row.values())[0] if row.values() else None)
+                if name:
+                    schemas.append(SchemaInfo(name=name))
+            
+            if not schemas:
+                logger.warning(f"No schemas found for engine {self.engine}. Query returned {len(result.rows)} rows but no valid schema names.")
+                # Try alternative query for MySQL-based engines (StarRocks, Doris)
+                if self.engine in ("mysql", "starrocks", "doris"):
+                    try:
+                        logger.debug("Trying alternative query: SHOW DATABASES")
+                        alt_result = self.adapter.execute("SHOW DATABASES")
+                        for row in alt_result.rows:
+                            # SHOW DATABASES returns rows with 'Database' column
+                            name = row.get("Database") or (list(row.values())[0] if row.values() else None)
+                            if name and name not in ('information_schema', 'mysql', 'performance_schema', 'sys'):
+                                schemas.append(SchemaInfo(name=name))
+                        logger.debug(f"Alternative query returned {len(schemas)} schemas")
+                    except Exception as alt_e:
+                        logger.warning(f"Alternative query also failed: {alt_e}")
+            
+            return schemas if schemas else []
         except Exception as e:
-            logger.error(f"Failed to get schemas: {e}")
-            # Return default schema
-            return [SchemaInfo(name="public")]
+            logger.error(f"Failed to get schemas for engine {self.engine}: {e}", exc_info=True)
+            # Return empty list instead of default schema to indicate failure
+            return []
     
     def get_tables(self, schema_name: str) -> List[TableInfo]:
         """

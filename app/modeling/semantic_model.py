@@ -633,12 +633,20 @@ class ExpressionValidator:
         Validate an expression.
         
         Args:
-            expression: SQL expression to validate
+            expression: SQL expression to validate (can be a column name or SQL expression)
         
         Returns:
             (is_valid, list of error messages)
         """
         errors = []
+        
+        # Strip whitespace
+        expression = expression.strip()
+        
+        # Empty expression is invalid
+        if not expression:
+            errors.append("Expression cannot be empty")
+            return False, errors
         
         # Check for blocked patterns
         for pattern in cls.BLOCKED_PATTERNS:
@@ -655,12 +663,19 @@ class ExpressionValidator:
         bracket_refs = re.findall(r"\[([^\]]+)\]", expression)
         # These will be validated against actual fields later
         
-        # Check for unknown functions
-        func_pattern = r"\b([A-Z_][A-Z0-9_]*)\s*\("
-        functions_used = re.findall(func_pattern, expression, re.IGNORECASE)
-        for func in functions_used:
-            if func.upper() not in cls.ALLOWED_FUNCTIONS:
-                errors.append(f"Unknown or disallowed function: {func}")
+        # Check for unknown functions (handle both uppercase and lowercase)
+        # Pattern matches function names (letters, numbers, underscores) followed by opening parenthesis
+        # Only check if expression contains function calls (has parentheses)
+        if "(" in expression:
+            func_pattern = r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\("
+            functions_used = re.findall(func_pattern, expression)
+            for func in functions_used:
+                func_upper = func.upper()
+                if func_upper not in cls.ALLOWED_FUNCTIONS:
+                    errors.append(f"Unknown or disallowed function: {func}")
+        
+        # Simple column names (no functions) are always valid
+        # They will be wrapped by the aggregation function (e.g., COUNT(DISTINCT column_name))
         
         return len(errors) == 0, errors
     

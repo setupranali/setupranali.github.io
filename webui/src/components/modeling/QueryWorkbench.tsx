@@ -226,7 +226,26 @@ export function QueryWorkbench({
             {queryWorkbench.mode === 'semantic' ? (
               <SemanticQueryBuilderVertical
                 dimensions={semanticModel?.dimensions || []}
-                measures={semanticModel?.measures || []}
+                measures={[
+                  ...(semanticModel?.measures || []),
+                  // Include calculated fields as measures
+                  ...(semanticModel?.calculatedFields || []).map(calc => ({
+                    id: calc.id,
+                    name: calc.name,
+                    expression: calc.expression,
+                    aggregation: 'NONE' as const,
+                    sourceTable: undefined,
+                    description: calc.description,
+                    formatString: calc.formatString,
+                    formatType: calc.formatType,
+                    isVisible: calc.isVisible,
+                    isAdditive: false,
+                    dependsOn: calc.referencedFields,
+                    filters: [],
+                    synonyms: [],
+                    metadata: calc.metadata,
+                  }))
+                ]}
                 selectedDimensions={selectedDims}
                 selectedMeasures={selectedMeas}
                 onDimensionsChange={setSelectedQueryDimensions}

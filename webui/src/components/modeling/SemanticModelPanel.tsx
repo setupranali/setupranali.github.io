@@ -137,6 +137,43 @@ export function SemanticModelPanel({
     },
   });
 
+  const addCalculatedFieldMutation = useMutation({
+    mutationFn: async (data: Parameters<typeof modelingApi.addCalculatedField>[1]) => {
+      console.log('Mutation function called with:', { semanticModelId, data });
+      try {
+        const result = await modelingApi.addCalculatedField(semanticModelId, data);
+        console.log('API response received:', result);
+        return result;
+      } catch (error: any) {
+        console.error('API call failed:', error);
+        throw error;
+      }
+    },
+    onSuccess: (calc) => {
+      console.log('Calculated field added successfully:', calc);
+      console.log('Adding to store, current semanticModelId:', semanticModelId);
+      try {
+        // Add to local store
+        addCalculatedField(calc);
+        console.log('Added to store successfully');
+        setShowAddDialog(false);
+      } catch (storeError) {
+        console.error('Failed to add to store:', storeError);
+        alert('Field was created but failed to update UI. Please refresh the page.');
+      }
+    },
+    onError: (error: any) => {
+      console.error('Failed to add calculated field:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        response: error?.response,
+        data: error?.response?.data,
+      });
+      const errorMessage = error?.message || error?.response?.data?.detail || 'Unknown error';
+      alert(`Failed to add calculated field: ${errorMessage}`);
+    },
+  });
+
   // Handle drop from schema browser columns
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -485,10 +522,16 @@ export function SemanticModelPanel({
             setEditItem(null);
           }}
           onAdd={(data) => {
+            console.log('onAdd called with:', { activeSection, data });
             if (activeSection === 'dimensions') {
               addDimensionMutation.mutate(data as any);
             } else if (activeSection === 'measures') {
               addMeasureMutation.mutate(data as any);
+            } else if (activeSection === 'calculated') {
+              console.log('Adding calculated field with data:', data);
+              addCalculatedFieldMutation.mutate(data as any);
+            } else {
+              console.error('Unknown section type:', activeSection);
             }
           }}
           onUpdate={(id, data) => {
@@ -507,6 +550,7 @@ export function SemanticModelPanel({
           isLoading={
             addDimensionMutation.isPending || 
             addMeasureMutation.isPending ||
+            addCalculatedFieldMutation.isPending ||
             updateDimensionMutation.isPending ||
             updateMeasureMutation.isPending ||
             updateCalculatedFieldMutation.isPending
@@ -1252,6 +1296,7 @@ function AddFieldDialog({
           name,
           expression,
           description,
+          resultType: 'number', // Default result type for calculated fields
         };
 
     if (isEditing && editItem && onUpdate) {

@@ -85,11 +85,19 @@ export function SchemaPanel({
   const schemasQuery = useQuery({
     queryKey: ['schemas', sourceId],
     queryFn: async () => {
-      const data = await modelingApi.getSchemas(sourceId);
-      setSchemas(data);
-      return data;
+      try {
+        console.log('Fetching schemas for source:', sourceId);
+        const data = await modelingApi.getSchemas(sourceId);
+        console.log('Schemas fetched:', data);
+        setSchemas(data);
+        return data;
+      } catch (error: any) {
+        console.error('Failed to fetch schemas:', error);
+        throw error;
+      }
     },
     enabled: !!sourceId,
+    retry: 1,
   });
 
   // Handle full refresh - clears all cached data and refetches
@@ -161,11 +169,28 @@ export function SchemaPanel({
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
           </div>
+        ) : schemasQuery.isError ? (
+          <div className="text-center py-8 px-4">
+            <div className="text-red-400 mb-2">Failed to load schemas</div>
+            <div className="text-xs text-slate-500">
+              {schemasQuery.error instanceof Error 
+                ? schemasQuery.error.message 
+                : 'Unknown error'}
+            </div>
+            <button
+              onClick={() => schemasQuery.refetch()}
+              className="mt-4 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded text-sm"
+            >
+              Retry
+            </button>
+          </div>
         ) : filteredSchemas.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             {schemaTree.searchQuery
               ? 'No tables match your search'
-              : 'No schemas found'}
+              : sourceId 
+                ? 'No schemas found. Make sure the source is connected and accessible.'
+                : 'No source selected'}
           </div>
         ) : (
           <div className="space-y-1">
