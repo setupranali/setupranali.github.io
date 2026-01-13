@@ -14,7 +14,7 @@ Power BI connects natively using OData—no custom connector needed.
 
 2. **Get Data → OData Feed**
 
-    ![Get Data](../assets/powerbi-get-data.png)
+    Navigate to: **Get Data** → **More...** → **OData Feed**
 
 3. **Enter the OData URL**
 

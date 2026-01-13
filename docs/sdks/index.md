@@ -134,7 +134,7 @@ Official SDKs for integrating with SetuPranali.
 
 ## Contributing SDKs
 
-Want to contribute an SDK for another language? See our [Contributing Guide](../CONTRIBUTING.md).
+Want to contribute an SDK for another language? See our [Contributing Guide](https://github.com/setupranali/setupranali.github.io/blob/main/CONTRIBUTING.md).
 
 Requirements:
 - Follow the API patterns established in Python/JS SDKs

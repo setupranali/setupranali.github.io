@@ -86,7 +86,7 @@ Use the visual query builder:
 5. **Granularity**: hour, day, week, month
 6. **Limit**: Maximum rows
 
-![Semantic Query](../../assets/grafana-semantic.png)
+The semantic query builder provides a visual interface to select datasets, dimensions, and metrics without writing SQL.
 
 ### SQL Mode
 
