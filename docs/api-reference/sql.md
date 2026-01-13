@@ -189,9 +189,41 @@ console.log(data.data);
 
 ---
 
+## SQL Dialect Conversion
+
+SetuPranali uses SQLGlot to automatically convert SQL between database dialects. When you execute a query, the SQL is automatically converted to match your data source's dialect.
+
+### Example
+
+```bash
+# Your SQL (works with any dialect)
+curl -X POST http://localhost:8080/v1/sql \
+  -H "X-API-Key: your-key" \
+  -d '{
+    "sql": "SELECT DATE_TRUNC('\''month'\'', order_date) as month, SUM(revenue) FROM orders GROUP BY 1",
+    "dataset": "orders"
+  }'
+
+# Automatically converted to:
+# - PostgreSQL: DATE_TRUNC('month', order_date)
+# - Snowflake: DATE_TRUNC('month', order_date)  
+# - BigQuery: DATE_TRUNC(order_date, MONTH)
+```
+
+### Supported Dialects
+
+All major database dialects are supported:
+- PostgreSQL, MySQL, Snowflake, BigQuery
+- Databricks, Redshift, ClickHouse
+- DuckDB, Trino, Presto, SQL Server, Oracle
+- And more...
+
+See [SQL Dialect Conversion](../concepts/sql-dialect-conversion.md) for details.
+
 ## Next Steps
 
 - [Query API Reference](query.md)
 - [GraphQL API](graphql.md)
 - [Row-Level Security](../guides/rls.md)
+- [SQL Dialect Conversion](../concepts/sql-dialect-conversion.md)
 

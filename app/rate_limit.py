@@ -142,29 +142,57 @@ def get_limiter() -> Optional["Limiter"]:
         # Falls back to in-memory if Redis unavailable
         from slowapi.middleware import SlowAPIMiddleware
         
-        _limiter = Limiter(
-            key_func=get_api_key_from_request,
-            storage_uri=config.redis_url,
-            strategy="fixed-window",  # Simple and predictable
-            default_limits=["200/minute"]  # Global fallback
-        )
-        
-        logger.info(f"Rate limiter initialized with Redis: {config.redis_url}")
-        return _limiter
-        
-    except Exception as e:
-        logger.warning(f"Rate limiter initialization failed: {e}. Using in-memory fallback.")
-        
+        # Test Redis connection first
         try:
-            # In-memory fallback
+            import redis
+            redis_url = config.redis_url.replace("redis://", "").replace("rediss://", "")
+            if "@" in redis_url:
+                # Has auth
+                parts = redis_url.split("@")
+                auth_part = parts[0]
+                host_part = parts[1] if len(parts) > 1 else "localhost:6379/0"
+            else:
+                host_part = redis_url
+            
+            host_port = host_part.split("/")[0]
+            if ":" in host_port:
+                host, port = host_part.split(":")[:2]
+            else:
+                host, port = "localhost", "6379"
+            
+            # Quick connection test
+            test_conn = redis.Redis(host=host, port=int(port), socket_connect_timeout=1)
+            test_conn.ping()
+            test_conn.close()
+            
+            # Redis is available, use it
             _limiter = Limiter(
                 key_func=get_api_key_from_request,
-                strategy="fixed-window"
+                storage_uri=config.redis_url,
+                strategy="fixed-window",
+                default_limits=["200/minute"]
             )
+            logger.info(f"Rate limiter initialized with Redis: {config.redis_url}")
             return _limiter
-        except Exception as e2:
-            logger.error(f"In-memory rate limiter failed: {e2}. Rate limiting disabled.")
-            return None
+        except (redis.ConnectionError, redis.TimeoutError, Exception) as redis_error:
+            logger.warning(f"Redis not available ({redis_error}), using in-memory rate limiting")
+            # Fall through to in-memory
+        
+    except Exception as e:
+        logger.warning(f"Rate limiter Redis setup failed: {e}. Using in-memory fallback.")
+    
+    # In-memory fallback
+    try:
+        _limiter = Limiter(
+            key_func=get_api_key_from_request,
+            strategy="fixed-window",
+            default_limits=["200/minute"]
+        )
+        logger.info("Rate limiter initialized with in-memory storage")
+        return _limiter
+    except Exception as e2:
+        logger.error(f"In-memory rate limiter failed: {e2}. Rate limiting disabled.")
+        return None
 
 
 # =============================================================================

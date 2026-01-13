@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Tuple, Optional, Union
 from datetime import date, datetime, timedelta
 from app.models import QueryRequest, ResultColumn, FilterCondition, IncrementalConfig
 from app.rls import build_rls_filter, apply_rls_to_filters, get_rls_stats, RLSResult
+from app.sql_builder import SQLBuilder, SQLBuilderError
 
 def _quote_ident(name: str) -> str:
     # very small identifier quote; safe for demo
@@ -367,61 +368,134 @@ def compile_and_run_query(
         merged_filters = _merge_filters(existing_dict, inc_filter)
     
     # =========================================================================
-    # ORIGINAL QUERY COMPILATION
+    # SQL GENERATION USING SQLGLOT
     # =========================================================================
     
-    # dimensions
-    select_parts: List[str] = []
-    group_by: List[str] = []
+    # Initialize SQL builder with target dialect
+    try:
+        builder = SQLBuilder(dialect=engine)
+    except Exception as e:
+        # Fallback to manual SQL building if SQLGlot fails
+        logger.warning(f"SQLGlot initialization failed, using fallback: {e}")
+        builder = None
+    
     columns: List[ResultColumn] = []
-
+    
     # Build a quick lookup for field types
     field_types = {f["name"]: f.get("type","string") for f in dataset.get("fields", [])}
     field_sem = {f["name"]: f.get("semanticType") for f in dataset.get("fields", [])}
-
-    for d in req.dimensions:
-        col = _quote_ident(d.name)
-        alias = d.alias or d.name
-        select_parts.append(f"{col} AS {_quote_ident(alias)}")
-        group_by.append(col)
-        columns.append(ResultColumn(name=alias, type=field_types.get(d.name,"string"), semanticType=field_sem.get(d.name)))
-
-    # metrics
+    
+    # Prepare dimensions and metrics
+    dimension_names = [d.name for d in req.dimensions]
+    metric_expressions = []
+    
+    # Build metric expressions
     metrics_def = {m["name"]: m for m in dataset.get("metrics", [])}
     for m in req.metrics:
         md = metrics_def[m.name]
         expr = md["expression"]
-        alias = m.alias or m.name
         if expr["type"] == "aggregation":
             agg = expr["agg"].upper()
-            field = _quote_ident(expr["field"])
+            field = expr["field"]
             if agg == "COUNT_DISTINCT":
-                sql_expr = f"COUNT(DISTINCT {field})"
+                metric_expr = f"COUNT(DISTINCT {field})"
             else:
-                sql_expr = f"{agg}({field})"
+                metric_expr = f"{agg}({field})"
         else:
             raise ValueError("Derived metrics not supported in MVP")
-        select_parts.append(f"{sql_expr} AS {_quote_ident(alias)}")
-        columns.append(ResultColumn(name=alias, type=md.get("returnType","double"), semanticType="metric"))
-
-    if not select_parts:
-        # allow raw preview
-        select_parts = ["*"]
-
-    # Use merged filters (original + incremental)
-    where_sql, args = _compile_filter(merged_filters) if merged_filters else ("", [])
-
-    sql = f"SELECT {', '.join(select_parts)} FROM {source_ref}"
-    if where_sql:
-        sql += f" WHERE {where_sql}"
-    if group_by and req.metrics:
-        sql += f" GROUP BY {', '.join(group_by)}"
+        metric_expressions.append(metric_expr)
+        columns.append(ResultColumn(
+            name=m.alias or m.name,
+            type=md.get("returnType","double"),
+            semanticType="metric"
+        ))
+    
+    # Build dimension columns
+    for d in req.dimensions:
+        columns.append(ResultColumn(
+            name=d.alias or d.name,
+            type=field_types.get(d.name,"string"),
+            semanticType=field_sem.get(d.name)
+        ))
+    
+    # Convert filters to dict format for SQLBuilder
+    filter_dict = None
+    if merged_filters:
+        if hasattr(merged_filters, "model_dump"):
+            filter_dict = merged_filters.model_dump(by_alias=True, exclude_none=True)
+        else:
+            filter_dict = merged_filters
+    
+    # Convert order_by to dict format
+    order_by_list = None
     if req.orderBy:
-        ob = []
-        for o in req.orderBy:
-            ob.append(f"{_quote_ident(o.field)} {o.direction.upper()}")
-        sql += " ORDER BY " + ", ".join(ob)
-    sql += f" LIMIT {int(req.limit)} OFFSET {int(req.offset)}"
+        order_by_list = [
+            {"field": o.field, "direction": o.direction.lower()}
+            for o in req.orderBy
+        ]
+    
+    # Generate SQL using SQLGlot if available, otherwise fallback
+    if builder:
+        try:
+            sql, args = builder.build_query(
+                dimensions=dimension_names,
+                metrics=metric_expressions,
+                source_table=source_ref,
+                filters=filter_dict,
+                group_by=dimension_names if req.metrics else None,
+                order_by=order_by_list,
+                limit=int(req.limit),
+                offset=int(req.offset)
+            )
+        except SQLBuilderError as e:
+            logger.warning(f"SQLGlot query building failed, using fallback: {e}")
+            builder = None  # Fall through to manual building
+    
+    # Fallback to manual SQL building
+    if not builder:
+        # dimensions
+        select_parts: List[str] = []
+        group_by: List[str] = []
+        
+        for d in req.dimensions:
+            col = _quote_ident(d.name)
+            alias = d.alias or d.name
+            select_parts.append(f"{col} AS {_quote_ident(alias)}")
+            group_by.append(col)
+        
+        # metrics
+        for m in req.metrics:
+            md = metrics_def[m.name]
+            expr = md["expression"]
+            alias = m.alias or m.name
+            if expr["type"] == "aggregation":
+                agg = expr["agg"].upper()
+                field = _quote_ident(expr["field"])
+                if agg == "COUNT_DISTINCT":
+                    sql_expr = f"COUNT(DISTINCT {field})"
+                else:
+                    sql_expr = f"{agg}({field})"
+            else:
+                raise ValueError("Derived metrics not supported in MVP")
+            select_parts.append(f"{sql_expr} AS {_quote_ident(alias)}")
+        
+        if not select_parts:
+            select_parts = ["*"]
+        
+        # Use merged filters (original + incremental)
+        where_sql, args = _compile_filter(merged_filters) if merged_filters else ("", [])
+        
+        sql = f"SELECT {', '.join(select_parts)} FROM {source_ref}"
+        if where_sql:
+            sql += f" WHERE {where_sql}"
+        if group_by and req.metrics:
+            sql += f" GROUP BY {', '.join(group_by)}"
+        if req.orderBy:
+            ob = []
+            for o in req.orderBy:
+                ob.append(f"{_quote_ident(o.field)} {o.direction.upper()}")
+            sql += " ORDER BY " + ", ".join(ob)
+        sql += f" LIMIT {int(req.limit)} OFFSET {int(req.offset)}"
 
     # =========================
     # EXECUTION (ENGINE SAFE)
@@ -441,38 +515,50 @@ def compile_and_run_query(
     from app.adapters.base import BaseAdapter
     if isinstance(conn, BaseAdapter):
         # New adapter interface
-        result = conn.execute(sql, args)
-        return columns, result.rows, {
-            "engine": result.engine,
-            "sql": result.sql,
-            **base_stats
-        }
+        try:
+            result = conn.execute(sql, args)
+            return columns, result.rows, {
+                "engine": result.engine,
+                "sql": result.sql,
+                **base_stats
+            }
+        except Exception as e:
+            logger.error(f"Adapter query execution failed: {e}")
+            raise
 
     # Legacy: DuckDB connection has `.execute` that returns result with fetchdf()
     if hasattr(conn, "execute") and hasattr(conn, "cursor") is False:
-        rows = conn.execute(sql, args).fetchdf().to_dict(orient="records")
-        return columns, rows, {
-            "engine": engine,
-            "sql": sql,
-            **base_stats
-        }
+        try:
+            rows = conn.execute(sql, args).fetchdf().to_dict(orient="records")
+            return columns, rows, {
+                "engine": engine,
+                "sql": sql,
+                **base_stats
+            }
+        except Exception as e:
+            logger.error(f"DuckDB query execution failed: {e}")
+            raise
 
     # Legacy: psycopg2 Postgres connection (NO direct `.execute`)
-    pg_sql = sql.replace("?", "%s")
+    try:
+        pg_sql = sql.replace("?", "%s")
 
-    cur = conn.cursor()
-    cur.execute(pg_sql, args)
+        cur = conn.cursor()
+        cur.execute(pg_sql, args)
 
-    colnames = [desc[0] for desc in cur.description]
-    data = cur.fetchall()
+        colnames = [desc[0] for desc in cur.description]
+        data = cur.fetchall()
 
-    cur.close()
+        cur.close()
 
-    rows = [dict(zip(colnames, row)) for row in data]
+        rows = [dict(zip(colnames, row)) for row in data]
 
-    return columns, rows, {
-        "engine": engine,
-        "sql": pg_sql,
-        **base_stats
-    }
+        return columns, rows, {
+            "engine": engine,
+            "sql": pg_sql,
+            **base_stats
+        }
+    except Exception as e:
+        logger.error(f"Postgres query execution failed: {e}")
+        raise
 

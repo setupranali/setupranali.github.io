@@ -159,6 +159,14 @@ data warehouse and your BI tools.
 :   Use with dbt, existing views, or standalone.
     Your modeling layer, your rules.
 
+:material-web:{ .feature-icon } **Web UI & Modeling Studio**
+:   Full-featured admin dashboard and visual modeling interface.
+    Build semantic models without writing YAML.
+
+:material-code-braces:{ .feature-icon } **SQL Dialect Conversion**
+:   Automatic SQL conversion between databases using SQLGlot.
+    Write once, run anywhere.
+
 </div>
 
 ---
@@ -177,6 +185,12 @@ data warehouse and your BI tools.
 | Redshift | ✅ GA | `redshift` |
 | ClickHouse | ✅ GA | `clickhouse` |
 | DuckDB | ✅ GA | `duckdb` |
+| Trino/Presto | ✅ GA | `trino` / `presto` |
+| SQL Server | ✅ GA | `tsql` |
+| Oracle | ✅ GA | `oracle` |
+| SQLite | ✅ GA | `sqlite` |
+| TimescaleDB | ✅ GA | `postgres` |
+| CockroachDB | ✅ GA | `postgres` |
 
 ### BI Tools
 
@@ -188,6 +202,9 @@ data warehouse and your BI tools.
 | Apache Superset | REST API | ✅ Supported |
 | Looker Studio | Community Connector | ✅ Supported |
 | Metabase | **Native Driver** | ✅ Native |
+| Grafana | REST API | ✅ Supported |
+| Qlik Sense | REST API | ✅ Supported |
+| Mode Analytics | REST API | ✅ Supported |
 | Any REST Client | REST API | ✅ Supported |
 
 ### APIs & SDKs
@@ -202,6 +219,8 @@ data warehouse and your BI tools.
 | Python SDK | `pip install setupranali` | ✅ Stable |
 | JavaScript SDK | `npm install @setupranali/client` | ✅ Stable |
 | Jupyter Widget | Interactive notebook widget | ✅ Stable |
+| Web UI | Admin dashboard & modeling studio | ✅ Stable |
+| SQL Dialect Conversion | Cross-database SQL with SQLGlot | ✅ Stable |
 
 ---
 
@@ -275,6 +294,15 @@ Data Source: OData
 URL: http://localhost:8080/odata/sales
 Header: X-API-Key = pk_tenant_abc123
 ```
+
+### 6. Use Web UI (Optional)
+
+Open http://localhost:5173 to access:
+- Dashboard with system metrics
+- Query Playground for testing
+- Modeling Studio for visual modeling
+- API Key management
+- Data source configuration
 
 ---
 

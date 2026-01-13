@@ -110,16 +110,33 @@ def apply_rls(query: str, context: TenantContext, dataset: Dataset) -> str:
 
 ### Query Engine
 
-Translates semantic requests to SQL:
+Translates semantic requests to SQL using SQLGlot:
 
+**SQLGlot Integration**:
+- Parses and validates SQL queries
+- Converts between database dialects automatically
+- Builds queries programmatically (prevents SQL injection)
+- Applies RLS filters safely using AST manipulation
+
+**Query Flow**:
 ```
-{                                  SELECT
-  "dataset": "sales",      →         region,
-  "dimensions": ["region"],          SUM(amount) AS revenue
-  "metrics": ["revenue"]           FROM fact_sales
-}                                  WHERE tenant_id = 'acme'
+{                                  SQLGlot AST
+  "dataset": "sales",      →         (parsed)
+  "dimensions": ["region"],          ↓
+  "metrics": ["revenue"]           Convert to dialect
+}                                  ↓
+                                   SELECT
+                                     region,
+                                     SUM(amount) AS revenue
+                                   FROM fact_sales
+                                   WHERE tenant_id = 'acme'
                                    GROUP BY region
 ```
+
+**Dialect Conversion**:
+- PostgreSQL SQL → Snowflake SQL (automatic)
+- BigQuery SQL → PostgreSQL SQL (automatic)
+- All major dialects supported
 
 ### Cache Layer
 

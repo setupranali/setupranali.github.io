@@ -363,6 +363,16 @@ console.log(result.rows);
 - Limit sample data queries
 - Use LIMIT in semantic queries
 
+## YAML Contract Export
+
+The Modeling Studio can export semantic models as YAML contracts:
+
+```http
+GET /v1/modeling/semantic/{modelId}/yaml
+```
+
+Returns the semantic model in YAML format for use in `catalog.yaml`.
+
 ## Roadmap
 
 - [ ] Visual join validation (type compatibility)
@@ -371,4 +381,5 @@ console.log(result.rows);
 - [ ] Export semantic model to dbt/Cube.js
 - [ ] Collaborative editing (websocket sync)
 - [ ] Version history for models
+- [x] YAML contract export (✅ Available)
 

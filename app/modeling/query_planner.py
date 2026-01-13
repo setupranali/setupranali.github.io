@@ -12,6 +12,7 @@ Features:
 - Filter application
 - Sort and pagination
 - Query optimization hints
+- Dialect-aware SQL generation (via SQLGlot)
 """
 
 import logging
@@ -26,6 +27,14 @@ from .semantic_model import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Try to import SQLGlot for dialect-aware SQL generation
+try:
+    from app.sql_builder import SQLBuilder
+    SQLGLOT_AVAILABLE = True
+except ImportError:
+    SQLGLOT_AVAILABLE = False
+    SQLBuilder = None
 
 
 class FilterOperator(str, Enum):
@@ -176,7 +185,8 @@ class QueryPlanner:
         self,
         erd_model: ERDModel,
         semantic_model: SemanticModel,
-        quote_char: str = '"'
+        quote_char: str = '"',
+        dialect: str = "postgres"
     ):
         """
         Initialize query planner.
@@ -185,10 +195,20 @@ class QueryPlanner:
             erd_model: ERD model with table nodes and relationships
             semantic_model: Semantic model with dimensions and measures
             quote_char: Identifier quote character (", `, [)
+            dialect: Target SQL dialect (postgres, snowflake, bigquery, etc.)
         """
         self.erd = erd_model
         self.semantic = semantic_model
         self.quote_char = quote_char
+        self.dialect = dialect
+        
+        # Initialize SQL builder if available
+        self.sql_builder = None
+        if SQLGLOT_AVAILABLE:
+            try:
+                self.sql_builder = SQLBuilder(dialect=dialect)
+            except Exception as e:
+                logger.warning(f"SQLGlot initialization failed, using fallback: {e}")
         
         # Build lookup maps
         self._build_lookups()
@@ -295,7 +315,44 @@ class QueryPlanner:
                 # Use alias
                 order_parts.append(f"{self._quote_identifier(sort.field)} {sort.direction.value}")
         
-        # 5. Assemble SQL
+        # 5. Assemble SQL using SQLGlot if available, otherwise fallback
+        if self.sql_builder:
+            try:
+                sql = self._build_sql_with_sqlglot(
+                    select_parts, from_clause, where_parts, group_by_parts,
+                    order_parts, query.limit, query.offset
+                )
+            except Exception as e:
+                logger.warning(f"SQLGlot SQL building failed, using fallback: {e}")
+                sql = self._build_sql_manual(
+                    select_parts, from_clause, where_parts, group_by_parts,
+                    order_parts, query.limit, query.offset
+                )
+        else:
+            sql = self._build_sql_manual(
+                select_parts, from_clause, where_parts, group_by_parts,
+                order_parts, query.limit, query.offset
+            )
+        
+        return GeneratedSQL(
+            sql=sql,
+            params=params,
+            tables_used=list(tables_needed),
+            joins_used=joins_used,
+            warnings=warnings,
+        )
+    
+    def _build_sql_manual(
+        self,
+        select_parts: List[str],
+        from_clause: str,
+        where_parts: List[str],
+        group_by_parts: List[str],
+        order_parts: List[str],
+        limit: Optional[int],
+        offset: int
+    ) -> str:
+        """Build SQL manually (fallback method)."""
         sql_parts = [
             "SELECT",
             "    " + ",\n    ".join(select_parts),
@@ -311,20 +368,40 @@ class QueryPlanner:
         if order_parts:
             sql_parts.append("ORDER BY " + ", ".join(order_parts))
         
-        if query.limit:
-            sql_parts.append(f"LIMIT {query.limit}")
-            if query.offset > 0:
-                sql_parts.append(f"OFFSET {query.offset}")
+        if limit:
+            sql_parts.append(f"LIMIT {limit}")
+            if offset > 0:
+                sql_parts.append(f"OFFSET {offset}")
         
-        sql = "\n".join(sql_parts)
+        return "\n".join(sql_parts)
+    
+    def _build_sql_with_sqlglot(
+        self,
+        select_parts: List[str],
+        from_clause: str,
+        where_parts: List[str],
+        group_by_parts: List[str],
+        order_parts: List[str],
+        limit: Optional[int],
+        offset: int
+    ) -> str:
+        """Build SQL using SQLGlot for dialect-aware generation."""
+        import sqlglot
+        from sqlglot import expressions as exp
         
-        return GeneratedSQL(
-            sql=sql,
-            params=params,
-            tables_used=list(tables_needed),
-            joins_used=joins_used,
-            warnings=warnings,
+        # Parse the manually built SQL to get AST
+        manual_sql = self._build_sql_manual(
+            select_parts, from_clause, where_parts, group_by_parts,
+            order_parts, limit, offset
         )
+        
+        # Parse into AST
+        ast = sqlglot.parse_one(manual_sql, read="generic")
+        
+        # Convert to target dialect
+        sql = ast.sql(dialect=self.sql_builder.target_dialect, pretty=True)
+        
+        return sql
     
     def _build_from_clause(self, tables: List[str]) -> Tuple[str, List[str]]:
         """
@@ -429,6 +506,20 @@ class QueryPlanner:
         
         params = []
         
+        # Use SQLGlot for filter building if available
+        if self.sql_builder:
+            try:
+                # Convert filter to SQLBuilder format
+                filter_dict = self._convert_filter_to_dict(f)
+                expr, filter_params = self.sql_builder._build_filter_expression(filter_dict)
+                if expr:
+                    # Convert AST to SQL string
+                    sql = expr.sql(dialect=self.sql_builder.target_dialect)
+                    return sql, filter_params
+            except Exception as e:
+                logger.warning(f"SQLGlot filter building failed, using fallback: {e}")
+        
+        # Fallback to manual filter building
         if f.operator == FilterOperator.IS_NULL:
             return f"{col} IS NULL", []
         elif f.operator == FilterOperator.IS_NOT_NULL:
@@ -443,6 +534,58 @@ class QueryPlanner:
             return f"{col} BETWEEN ? AND ?", [f.value, f.second_value]
         else:
             return f"{col} {f.operator.value} ?", [f.value]
+    
+    def _convert_filter_to_dict(self, f: QueryFilter) -> Dict[str, Any]:
+        """Convert QueryFilter to SQLBuilder filter dict format."""
+        # Resolve field to actual column reference
+        dim = self.semantic.get_dimension(f.field)
+        measure = self.semantic.get_measure(f.field)
+        
+        if dim:
+            field_ref = f"{dim.source_table}.{dim.source_column}"
+        elif measure:
+            field_ref = f.field  # Use measure name as-is
+        else:
+            field_ref = f.field
+        
+        op_map = {
+            FilterOperator.EQUALS: "eq",
+            FilterOperator.NOT_EQUALS: "ne",
+            FilterOperator.GREATER_THAN: "gt",
+            FilterOperator.GREATER_THAN_OR_EQUALS: "gte",
+            FilterOperator.LESS_THAN: "lt",
+            FilterOperator.LESS_THAN_OR_EQUALS: "lte",
+            FilterOperator.LIKE: "contains",  # Approximate
+            FilterOperator.NOT_LIKE: "not_like",
+            FilterOperator.IN: "in",
+            FilterOperator.NOT_IN: "not_in",
+            FilterOperator.IS_NULL: "is_null",
+            FilterOperator.IS_NOT_NULL: "is_not_null",
+            FilterOperator.BETWEEN: "between",
+        }
+        
+        op = op_map.get(f.operator, "eq")
+        
+        if f.operator == FilterOperator.BETWEEN:
+            return {
+                "field": field_ref,
+                "op": op,
+                "from": f.value,
+                "to": f.second_value
+            }
+        elif f.operator in (FilterOperator.IN, FilterOperator.NOT_IN):
+            values = f.value if isinstance(f.value, list) else [f.value]
+            return {
+                "field": field_ref,
+                "op": op,
+                "values": values
+            }
+        else:
+            return {
+                "field": field_ref,
+                "op": op,
+                "value": f.value
+            }
     
     def _resolve_calculated_field(self, calc: CalculatedField) -> str:
         """Resolve calculated field expression to SQL."""
@@ -554,6 +697,7 @@ class QueryPlanner:
 class SQLValidator:
     """
     Validates raw SQL queries for safety.
+    Uses SQLGlot for AST-based validation if available.
     """
     
     DANGEROUS_KEYWORDS = {
@@ -563,36 +707,79 @@ class SQLValidator:
     }
     
     @classmethod
-    def validate(cls, sql: str) -> Tuple[bool, List[str]]:
+    def validate(cls, sql: str, dialect: str = "postgres") -> Tuple[bool, List[str]]:
         """
         Validate SQL for safety.
+        
+        Args:
+            sql: SQL query to validate
+            dialect: SQL dialect for parsing
         
         Returns:
             (is_safe, list of issues)
         """
         issues = []
-        sql_upper = sql.upper()
         
-        # Check for dangerous keywords
-        for keyword in cls.DANGEROUS_KEYWORDS:
-            # Match word boundaries to avoid false positives
-            import re
-            if re.search(rf"\b{keyword}\b", sql_upper):
-                issues.append(f"Dangerous keyword detected: {keyword}")
+        # Use SQLGlot for validation if available
+        if SQLGLOT_AVAILABLE:
+            try:
+                import sqlglot
+                from sqlglot.errors import ParseError
+                
+                # Parse SQL to validate syntax
+                try:
+                    ast = sqlglot.parse_one(sql, read=dialect)
+                    
+                    # Check if it's a SELECT query
+                    if not isinstance(ast, sqlglot.expressions.Select):
+                        issues.append("Only SELECT queries are allowed")
+                    
+                    # Check for dangerous operations in AST
+                    sql_upper = sql.upper()
+                    for keyword in cls.DANGEROUS_KEYWORDS:
+                        if keyword in sql_upper:
+                            issues.append(f"Dangerous keyword detected: {keyword}")
+                    
+                except ParseError as e:
+                    issues.append(f"Invalid SQL syntax: {str(e)}")
+                
+            except Exception as e:
+                logger.warning(f"SQLGlot validation failed, using fallback: {e}")
+                # Fall through to regex-based validation
         
-        # Check for multiple statements
-        if sql.count(";") > 1 or (sql.count(";") == 1 and not sql.strip().endswith(";")):
-            issues.append("Multiple statements not allowed")
-        
-        # Check for comments (could hide malicious code)
-        if "--" in sql or "/*" in sql:
-            issues.append("SQL comments not allowed")
+        # Fallback to regex-based validation
+        if not SQLGLOT_AVAILABLE or not issues:
+            sql_upper = sql.upper()
+            
+            # Check for dangerous keywords
+            for keyword in cls.DANGEROUS_KEYWORDS:
+                import re
+                if re.search(rf"\b{keyword}\b", sql_upper):
+                    issues.append(f"Dangerous keyword detected: {keyword}")
+            
+            # Check for multiple statements
+            if sql.count(";") > 1 or (sql.count(";") == 1 and not sql.strip().endswith(";")):
+                issues.append("Multiple statements not allowed")
+            
+            # Check for comments (could hide malicious code)
+            if "--" in sql or "/*" in sql:
+                issues.append("SQL comments not allowed")
         
         return len(issues) == 0, issues
     
     @classmethod
-    def is_select_only(cls, sql: str) -> bool:
+    def is_select_only(cls, sql: str, dialect: str = "postgres") -> bool:
         """Check if SQL is a SELECT query only."""
+        # Use SQLGlot if available
+        if SQLGLOT_AVAILABLE:
+            try:
+                import sqlglot
+                ast = sqlglot.parse_one(sql, read=dialect)
+                return isinstance(ast, sqlglot.expressions.Select)
+            except Exception:
+                pass
+        
+        # Fallback to string check
         sql_trimmed = sql.strip().upper()
         return (
             sql_trimmed.startswith("SELECT") or

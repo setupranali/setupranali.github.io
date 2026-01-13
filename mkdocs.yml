@@ -127,6 +127,7 @@ nav:
   - Getting Started:
     - getting-started/index.md
     - Quick Start: getting-started/quickstart.md
+    - Web UI Quick Start: getting-started/web-ui-quickstart.md
     - Installation: getting-started/installation.md
     - First Query: getting-started/first-query.md
     - Connect BI Tool: getting-started/connect-bi-tool.md
@@ -138,10 +139,13 @@ nav:
     - Security Model: concepts/security.md
     - Caching: concepts/caching.md
     - Rate Limiting: concepts/rate-limiting.md
+    - SQL Dialect Conversion: concepts/sql-dialect-conversion.md
   
   - Guides:
     - guides/index.md
     - Defining Datasets: guides/datasets.md
+    - Web UI & Dashboard: guides/web-ui.md
+    - Modeling Studio: guides/modeling-ui.md
     - OAuth / OIDC: guides/oauth.md
     - SAML SSO: guides/saml.md
     - Fine-Grained Permissions: guides/fine-grained-permissions.md
@@ -155,6 +159,8 @@ nav:
     - Multi-Tenant Setup: guides/multi-tenant.md
     - API Keys: guides/api-keys.md
     - CLI Tool: guides/cli.md
+    - Best Practices: guides/best-practices.md
+    - Troubleshooting: guides/troubleshooting.md
   
   - Integrations:
     - integrations/index.md

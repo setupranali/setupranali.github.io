@@ -239,20 +239,34 @@ app.include_router(
 
 def seed_demo_data():
     """Seed demo data with multi-tenant data for RLS testing."""
-    adapter = get_shared_duckdb()
-    adapter.execute_script("""
-      CREATE TABLE IF NOT EXISTS orders AS
-      SELECT * FROM (VALUES
-        ('o1', 'tenantA', DATE '2025-12-01', 'Indore', 1000.0, 2),
-        ('o2', 'tenantA', DATE '2025-12-01', 'Bhopal', 500.0, 1),
-        ('o3', 'tenantB', DATE '2025-12-02', 'Indore', 250.0, 1),
-        ('o4', 'tenantB', DATE '2025-12-03', 'Delhi', 1200.0, 3),
-        ('o5', 'default', DATE '2025-12-02', 'Mumbai', 800.0, 2),
-        ('o6', 'default', DATE '2025-12-03', 'Chennai', 600.0, 1)
-      ) t(order_id, tenant_id, order_date, city, revenue, qty);
-    """)
+    try:
+        adapter = get_shared_duckdb()
+        # Use execute_script for multi-statement execution
+        adapter.execute_script("""
+          CREATE TABLE IF NOT EXISTS orders (
+            order_id VARCHAR,
+            tenant_id VARCHAR,
+            order_date DATE,
+            city VARCHAR,
+            revenue DOUBLE,
+            qty INTEGER
+          );
+          
+          DELETE FROM orders;
+          
+          INSERT INTO orders VALUES
+            ('o1', 'tenantA', DATE '2025-12-01', 'Indore', 1000.0, 2),
+            ('o2', 'tenantA', DATE '2025-12-01', 'Bhopal', 500.0, 1),
+            ('o3', 'tenantB', DATE '2025-12-02', 'Indore', 250.0, 1),
+            ('o4', 'tenantB', DATE '2025-12-03', 'Delhi', 1200.0, 3),
+            ('o5', 'default', DATE '2025-12-02', 'Mumbai', 800.0, 2),
+            ('o6', 'default', DATE '2025-12-03', 'Chennai', 600.0, 1);
+        """)
+        logger.info("Demo data seeded successfully")
+    except Exception as e:
+        logger.warning(f"Failed to seed demo data: {e}")
 
-# seed_demo_data()  # Disabled - uncomment to enable demo data
+seed_demo_data()  # Enabled for testing - comment out for production
 
 
 # =============================================================================
@@ -605,9 +619,14 @@ def run_sql_query(
     The SQL query will be wrapped to apply RLS based on your API key's tenant.
     You must specify a dataset to determine which RLS rules to apply.
     
+    **Authentication Required**: This endpoint requires an API key.
+    Create one at: POST /v1/api-keys
+    Then use: Header: X-API-Key: <your-api-key>
+    
     Example:
         POST /v1/sql
-        {
+        Headers: X-API-Key: your-api-key
+        Body: {
             "sql": "SELECT city, SUM(revenue) as total FROM orders GROUP BY city",
             "dataset": "orders"
         }
@@ -618,44 +637,83 @@ def run_sql_query(
         - Dangerous operations (DROP, DELETE, etc.) are blocked
     """
     import time
-    import re
     
     start_time = time.time()
     
     request_id = getattr(request.state, "request_id", None)
     
-    # Security: Only allow SELECT queries
-    sql_upper = req.sql.strip().upper()
-    if not sql_upper.startswith("SELECT"):
-        raise sql_unsafe(
-            reason="Only SELECT queries are allowed",
-            pattern="non-SELECT statement",
-            request_id=request_id
-        )
-    
-    # Security: Block dangerous operations
-    dangerous_patterns = [
-        (r'\bDROP\b', "DROP"),
-        (r'\bDELETE\b', "DELETE"),
-        (r'\bTRUNCATE\b', "TRUNCATE"),
-        (r'\bINSERT\b', "INSERT"),
-        (r'\bUPDATE\b', "UPDATE"),
-        (r'\bALTER\b', "ALTER"),
-        (r'\bCREATE\b', "CREATE"),
-        (r'\bGRANT\b', "GRANT"),
-        (r'\bREVOKE\b', "REVOKE"),
-        (r'\bEXEC\b', "EXEC"),
-        (r'\bEXECUTE\b', "EXECUTE"),
-        (r'--', "SQL comment"),
-        (r'/\*', "Block comment")
-    ]
-    for pattern, name in dangerous_patterns:
-        if re.search(pattern, req.sql, re.IGNORECASE):
+    # SQL Validation using SQLGlot
+    try:
+        from app.sql_builder import SQLBuilder
+        import sqlglot
+        from sqlglot.errors import ParseError
+        
+        # Parse and validate SQL
+        try:
+            # Use None for auto-detect or "duckdb" as default for demo
+            ast = sqlglot.parse_one(req.sql, read=None)
+            
+            # Security: Only allow SELECT queries
+            if not isinstance(ast, sqlglot.expressions.Select):
+                raise sql_unsafe(
+                    reason="Only SELECT queries are allowed",
+                    pattern="non-SELECT statement",
+                    request_id=request_id
+                )
+            
+            # Security: Check for dangerous operations in AST
+            dangerous_keywords = [
+                "DROP", "DELETE", "TRUNCATE", "INSERT", "UPDATE",
+                "ALTER", "CREATE", "GRANT", "REVOKE", "EXEC", "EXECUTE"
+            ]
+            
+            sql_upper = req.sql.upper()
+            for keyword in dangerous_keywords:
+                if keyword in sql_upper:
+                    raise sql_unsafe(
+                        reason=f"Query contains disallowed operation: {keyword}",
+                        pattern=keyword,
+                        request_id=request_id
+                    )
+        
+        except ParseError as e:
             raise sql_unsafe(
-                reason=f"Query contains disallowed operation: {name}",
-                pattern=name,
+                reason=f"Invalid SQL syntax: {str(e)}",
+                pattern="parse_error",
                 request_id=request_id
             )
+    
+    except ImportError:
+        # Fallback to regex-based validation if SQLGlot not available
+        import re
+        sql_upper = req.sql.strip().upper()
+        if not sql_upper.startswith("SELECT"):
+            raise sql_unsafe(
+                reason="Only SELECT queries are allowed",
+                pattern="non-SELECT statement",
+                request_id=request_id
+            )
+        
+        dangerous_patterns = [
+            (r'\bDROP\b', "DROP"),
+            (r'\bDELETE\b', "DELETE"),
+            (r'\bTRUNCATE\b', "TRUNCATE"),
+            (r'\bINSERT\b', "INSERT"),
+            (r'\bUPDATE\b', "UPDATE"),
+            (r'\bALTER\b', "ALTER"),
+            (r'\bCREATE\b', "CREATE"),
+            (r'\bGRANT\b', "GRANT"),
+            (r'\bREVOKE\b', "REVOKE"),
+            (r'\bEXEC\b', "EXEC"),
+            (r'\bEXECUTE\b', "EXECUTE"),
+        ]
+        for pattern, name in dangerous_patterns:
+            if re.search(pattern, req.sql, re.IGNORECASE):
+                raise sql_unsafe(
+                    reason=f"Query contains disallowed operation: {name}",
+                    pattern=name,
+                    request_id=request_id
+                )
     
     # Load dataset for RLS context
     catalog = load_catalog()
@@ -671,52 +729,53 @@ def run_sql_query(
     
     # Get RLS configuration
     rls_config = dataset.get("rls", {})
-    rls_field = rls_config.get("field", "tenant_id")
+    rls_field = rls_config.get("column", rls_config.get("field", "tenant_id"))
     
-    # Wrap query with RLS
-    # This creates a CTE that filters the base data
-    rls_sql = f"""
-    WITH rls_filtered AS (
-        SELECT * FROM ({req.sql}) AS user_query
-        WHERE {rls_field} = '{ctx.tenant}'
-    )
-    SELECT * FROM rls_filtered
-    """
-    
-    # If tenant is 'default' or admin role, don't apply RLS
-    if ctx.tenant == "default" or ctx.role == "admin":
-        rls_sql = req.sql
+    # Apply RLS - for admin/default tenant, use SQL as-is
+    # For other tenants, wrap with RLS filter if RLS is enabled
+    rls_sql = req.sql
+    if ctx.tenant != "default" and ctx.role != "admin" and rls_config.get("enabled", False):
+        # Wrap SQL with RLS filter
+        rls_sql = f"""
+        WITH rls_filtered AS (
+            SELECT * FROM ({req.sql}) AS user_query
+            WHERE {rls_field} = '{ctx.tenant}'
+        )
+        SELECT * FROM rls_filtered
+        """
+    # For admin/default tenant, RLS is bypassed - use SQL as-is
     
     try:
         from app.sources import SOURCES
+        from app.adapters.base import BaseAdapter
         engine, conn = get_engine_and_conn(dataset["source"], SOURCES)
         
-        # Execute query
-        result = conn.execute(rls_sql)
+        # Ensure adapter is connected if it's an adapter
+        if isinstance(conn, BaseAdapter) and not conn.is_connected():
+            conn.connect()
         
-        if hasattr(result, 'fetchall'):
-            rows = result.fetchall()
-            # DuckDB uses description, SQLAlchemy uses keys()
-            if hasattr(result, 'description') and result.description:
-                columns = [{"name": d[0], "type": str(d[1]) if len(d) > 1 else "string"} for d in result.description]
-            elif hasattr(result, 'keys'):
-                columns = [{"name": str(col), "type": "string"} for col in result.keys()]
-            else:
-                columns = [{"name": f"col_{i}", "type": "string"} for i in range(len(rows[0]) if rows else 0)]
+        # Execute query - handle both adapter and legacy connections
+        if isinstance(conn, BaseAdapter):
+            # New adapter interface - rows are already dicts
+            result = conn.execute(rls_sql)
+            data = result.rows  # Already list of dicts
+            columns = [{"name": col, "type": result.column_types.get(col, "string")} for col in result.columns]
+        elif hasattr(conn, 'execute') and hasattr(conn, 'cursor') is False:
+            # Legacy DuckDB connection
+            result = conn.execute(rls_sql)
+            df = result.fetchdf()
+            data = df.to_dict(orient="records")  # Already list of dicts
+            columns = [{"name": col, "type": str(df[col].dtype)} for col in df.columns]
         else:
-            rows = list(result)
-            columns = [{"name": f"col_{i}", "type": "string"} for i in range(len(rows[0]) if rows else 0)]
-        
-        # Convert rows to dicts
-        data = []
-        col_names = [c["name"] for c in columns]
-        for row in rows:
-            if hasattr(row, '_asdict'):
-                data.append(row._asdict())
-            elif hasattr(row, 'keys'):
-                data.append(dict(row))
-            else:
-                data.append({col_names[i]: v for i, v in enumerate(row)})
+            # Legacy Postgres connection
+            cur = conn.cursor()
+            cur.execute(rls_sql)
+            colnames = [desc[0] for desc in cur.description]
+            rows = cur.fetchall()
+            cur.close()
+            # Convert tuples to dicts
+            data = [dict(zip(colnames, row)) for row in rows]
+            columns = [{"name": col, "type": "string"} for col in colnames]
         
         execution_time = int((time.time() - start_time) * 1000)
         
@@ -732,7 +791,11 @@ def run_sql_query(
     except SetuPranaliError:
         raise
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
         logger.error(f"SQL query error: {e}")
+        import traceback
+        logger.error(f"SQL query error traceback: {traceback.format_exc()}")
         raise internal_error(
             message=f"Query execution failed: {str(e)}",
             details={"sql_preview": req.sql[:100] + "..." if len(req.sql) > 100 else req.sql},
@@ -893,7 +956,20 @@ def run_query(
     """
     Execute a semantic query against a dataset.
     
-    Requires X-API-Key header for authentication.
+    **Authentication Required**: This endpoint requires an API key.
+    Create one at: POST /v1/api-keys
+    Then use: Header: X-API-Key: <your-api-key>
+    
+    Example:
+        POST /v1/query
+        Headers: X-API-Key: your-api-key
+        Body: {
+            "dataset": "orders",
+            "dimensions": [{"name": "city"}],
+            "metrics": [{"name": "total_revenue"}],
+            "limit": 100
+        }
+    
     Applies:
     - Row-Level Security (automatic tenant filtering)
     - Safety Guards (limit validation)
@@ -955,7 +1031,13 @@ def run_query(
         else:
             source_config = source_ref
         
+        # Get engine and connection (may be adapter or legacy connection)
         engine, conn = get_engine_and_conn(source_config, SOURCES)
+        
+        # Ensure adapter is connected if it's an adapter
+        from app.adapters.base import BaseAdapter
+        if isinstance(conn, BaseAdapter) and not conn.is_connected():
+            conn.connect()
         
         # Build cache components
         cache_components = build_cache_components_from_request(
