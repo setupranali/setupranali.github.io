@@ -27,9 +27,27 @@
   --md-dark-border: #1f2937;
   --md-dark-border-light: #374151;
 
-  /* Typography */
+  /* Typography - Consistent Scale */
   --md-text-font: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --md-code-font: "JetBrains Mono", "Fira Code", "Consolas", "Monaco", monospace;
+  
+  /* Base Font Size - All text sizes derived from this */
+  --md-base-font-size: 13px;
+  --md-line-height: 1.6;
+
+  /* Typography Scale */
+  --md-font-xs: 11px;
+  --md-font-sm: 12px;
+  --md-font-base: 13px;
+  --md-font-md: 14px;
+  --md-font-lg: 15px;
+  --md-font-xl: 16px;
+  --md-font-2xl: 18px;
+  --md-font-3xl: 20px;
+  --md-font-4xl: 24px;
+  --md-font-5xl: 28px;
+  --md-font-6xl: 32px;
+  --md-font-7xl: 40px;
 
   /* Radius */
   --md-radius-sm: 6px;
@@ -70,13 +88,13 @@
 }
 
 /* =======================
-   Typography
+   Typography - Consistent Base
    ======================= */
 
 body {
   font-family: var(--md-text-font);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: var(--md-font-base);
+  line-height: var(--md-line-height);
   color: var(--md-typeset-color);
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
@@ -84,13 +102,17 @@ body {
 }
 
 .md-typeset {
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: var(--md-font-base);
+  line-height: var(--md-line-height);
   color: var(--md-typeset-color);
 }
 
+/* =======================
+   Headings - Consistent Hierarchy
+   ======================= */
+
 .md-typeset h1 {
-  font-size: 1.75rem;
+  font-size: var(--md-font-5xl);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.2;
@@ -100,7 +122,7 @@ body {
 }
 
 .md-typeset h2 {
-  font-size: 1.5rem;
+  font-size: var(--md-font-4xl);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.3;
@@ -112,7 +134,7 @@ body {
 }
 
 .md-typeset h3 {
-  font-size: 1.125rem;
+  font-size: var(--md-font-2xl);
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.4;
@@ -122,24 +144,50 @@ body {
 }
 
 .md-typeset h4 {
-  font-size: 1rem;
+  font-size: var(--md-font-xl);
   font-weight: 600;
   line-height: 1.5;
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
 }
 
+.md-typeset h5 {
+  font-size: var(--md-font-lg);
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.md-typeset h6 {
+  font-size: var(--md-font-base);
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* =======================
+   Body Text - Consistent
+   ======================= */
+
 .md-typeset p {
   margin-bottom: 1rem;
   max-width: 72ch;
   color: var(--md-typeset-color);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: var(--md-font-base);
+  line-height: var(--md-line-height);
 }
 
 .md-typeset strong {
   font-weight: 600;
   color: var(--md-primary-fg-color--dark);
+  font-size: var(--md-font-base);
+}
+
+.md-typeset em {
+  font-style: italic;
+  font-size: var(--md-font-base);
 }
 
 .md-typeset a {
@@ -147,6 +195,7 @@ body {
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition: all 0.2s ease;
+  font-size: var(--md-font-base);
 }
 
 .md-typeset a:hover {
@@ -155,11 +204,39 @@ body {
 }
 
 /* =======================
+   Lists - Consistent
+   ======================= */
+
+.md-typeset ul,
+.md-typeset ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.md-typeset li {
+  margin: 0.375rem 0;
+  line-height: var(--md-line-height);
+  font-size: var(--md-font-base);
+}
+
+.md-typeset ul li::marker {
+  color: var(--md-primary-fg-color);
+}
+
+.md-typeset ul ul,
+.md-typeset ol ol,
+.md-typeset ul ol,
+.md-typeset ol ul {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* =======================
    Hero – Glassmorphism Light
    ======================= */
 
 .hero {
-  padding: 5rem 2rem;
+  padding: 4rem 2rem;
   margin: -1rem -1rem 3rem -1rem;
   background:
     radial-gradient(1200px 600px at 50% -10%, rgba(14, 165, 233, 0.15), transparent 40%),
@@ -179,26 +256,26 @@ body {
 }
 
 .hero h2 {
-  font-size: 3rem;
+  font-size: var(--md-font-7xl);
   font-weight: 800;
   line-height: 1.1;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   color: var(--md-primary-fg-color);
   letter-spacing: -0.03em;
 }
 
 .hero p {
-  font-size: 1.25rem;
-  line-height: 1.6;
+  font-size: var(--md-font-lg);
+  line-height: var(--md-line-height);
   color: var(--md-typeset-color);
   max-width: 680px;
-  margin: 0 auto 2.5rem;
+  margin: 0 auto 2rem;
 }
 
 .hero .md-button {
   margin: 0.5rem;
   padding: 0.7rem 1.4rem;
-  font-size: 1rem;
+  font-size: var(--md-font-base);
   font-weight: 600;
   border-radius: var(--md-radius-md);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -238,6 +315,7 @@ body {
   padding: 0.7rem 1.4rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--md-shadow-sm);
+  font-size: var(--md-font-base);
 }
 
 .md-typeset .md-button:hover {
@@ -287,14 +365,15 @@ body {
 
 .grid.cards > ul > li > :first-child {
   margin-top: 0;
-  font-size: 1.25rem;
+  font-size: var(--md-font-xl);
   font-weight: 600;
   color: var(--md-primary-fg-color--dark);
 }
 
 .grid.cards > ul > li > p {
   margin-top: 0.75rem;
-  line-height: 1.6;
+  line-height: var(--md-line-height);
+  font-size: var(--md-font-base);
 }
 
 /* =======================
@@ -315,7 +394,7 @@ body {
   padding: 0;
   border-radius: 0;
   font-family: var(--md-code-font);
-  font-size: 0.9rem;
+  font-size: var(--md-font-sm);
   line-height: 1.6;
   color: var(--md-code-fg-color);
 }
@@ -326,7 +405,7 @@ body {
   padding: 0.2rem 0.5rem;
   border-radius: var(--md-radius-sm);
   font-family: var(--md-code-font);
-  font-size: 0.9em;
+  font-size: var(--md-font-sm);
   font-weight: 500;
   border: 1px solid var(--md-code-border);
 }
@@ -355,14 +434,15 @@ body {
   padding: 0.75rem 1rem;
   text-align: left;
   letter-spacing: 0.01em;
-  font-size: 13px;
+  font-size: var(--md-font-base);
 }
 
 .md-typeset table:not([class]) td {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--md-default-bg-color--lighter);
   transition: background-color 0.2s ease;
-  font-size: 13px;
+  font-size: var(--md-font-base);
+  line-height: var(--md-line-height);
 }
 
 .md-typeset table:not([class]) tbody tr:hover {
@@ -394,7 +474,7 @@ body {
 
 .md-header__title {
   font-weight: 700;
-  font-size: 1.125rem;
+  font-size: var(--md-font-xl);
   color: var(--md-primary-fg-color);
 }
 
@@ -416,10 +496,11 @@ body {
 .md-tabs__link {
   color: var(--md-typeset-color);
   font-weight: 500;
-  padding: 0.75rem 1rem;
+  padding: 0.625rem 0.875rem;
   transition: all 0.2s ease;
   border-radius: var(--md-radius-sm);
   margin: 0.25rem;
+  font-size: var(--md-font-base);
 }
 
 .md-tabs__link:hover {
@@ -439,6 +520,7 @@ body {
   border-radius: var(--md-radius-sm);
   padding: 0.5rem 1rem;
   margin: 0.125rem 0;
+  font-size: var(--md-font-sm);
 }
 
 .md-nav__link:hover {
@@ -469,7 +551,7 @@ body {
 }
 
 .md-nav {
-  font-size: 0.9rem;
+  font-size: var(--md-font-sm);
 }
 
 .md-nav__title {
@@ -477,6 +559,7 @@ body {
   color: var(--md-primary-fg-color--dark);
   padding: 0.5rem 1rem;
   margin-bottom: 0.5rem;
+  font-size: var(--md-font-base);
 }
 
 /* =======================
@@ -503,11 +586,13 @@ body {
 .md-search__input {
   color: var(--md-typeset-color);
   background: transparent;
+  font-size: var(--md-font-base);
 }
 
 .md-search__input::placeholder {
   color: var(--md-typeset-color);
   opacity: 0.6;
+  font-size: var(--md-font-base);
 }
 
 .md-search__icon {
@@ -539,6 +624,42 @@ body {
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: var(--md-primary-fg-color--dark);
+  font-size: var(--md-font-lg);
+}
+
+.md-typeset .admonition p,
+.md-typeset .admonition ul,
+.md-typeset .admonition ol {
+  font-size: var(--md-font-base);
+  line-height: var(--md-line-height);
+}
+
+/* =======================
+   Blockquotes
+   ======================= */
+
+.md-typeset blockquote {
+  border-left: 4px solid var(--md-primary-fg-color);
+  padding-left: 1.5rem;
+  margin: 2rem 0;
+  color: var(--md-typeset-color);
+  font-style: italic;
+  background: var(--md-default-bg-color--light);
+  padding: 1.5rem;
+  border-radius: var(--md-radius-sm);
+  font-size: var(--md-font-base);
+  line-height: var(--md-line-height);
+}
+
+/* =======================
+   Horizontal Rules
+   ======================= */
+
+.md-typeset hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--md-primary-fg-color), transparent);
+  margin: 3rem 0;
 }
 
 /* =======================
@@ -564,8 +685,14 @@ body {
 .footer-cta h2 {
   color: var(--md-typeset-color) !important;
   margin-bottom: 2rem;
-  font-size: 2.25rem;
+  font-size: var(--md-font-5xl);
   font-weight: 700;
+}
+
+.footer-cta p {
+  font-size: var(--md-font-lg);
+  line-height: var(--md-line-height);
+  margin-bottom: 1.5rem;
 }
 
 .footer-cta .md-button {
@@ -574,6 +701,7 @@ body {
   border-radius: var(--md-radius-md);
   transition: all 0.3s ease;
   box-shadow: var(--md-shadow-sm);
+  font-size: var(--md-font-base);
 }
 
 .footer-cta .md-button--primary {
@@ -598,11 +726,13 @@ body {
   box-shadow: var(--md-shadow-sm);
   padding: 0.5rem 0;
   text-align: center;
+  font-size: var(--md-font-sm);
 }
 
 .md-banner a {
   color: white;
   text-decoration: underline;
+  font-size: var(--md-font-sm);
 }
 
 .md-banner a:hover {
@@ -614,56 +744,10 @@ body {
    ======================= */
 
 .feature-icon {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   color: var(--md-primary-fg-color);
   margin-right: 0.75rem;
   vertical-align: middle;
-}
-
-/* =======================
-   Lists
-   ======================= */
-
-.md-typeset ul,
-.md-typeset ol {
-  margin: 1.25rem 0;
-  padding-left: 2rem;
-}
-
-.md-typeset li {
-  margin: 0.5rem 0;
-  line-height: 1.65;
-  font-size: 14px;
-}
-
-.md-typeset ul li::marker {
-  color: var(--md-primary-fg-color);
-}
-
-/* =======================
-   Blockquotes
-   ======================= */
-
-.md-typeset blockquote {
-  border-left: 4px solid var(--md-primary-fg-color);
-  padding-left: 1.5rem;
-  margin: 2rem 0;
-  color: var(--md-typeset-color);
-  font-style: italic;
-  background: var(--md-default-bg-color--light);
-  padding: 1.5rem;
-  border-radius: var(--md-radius-sm);
-}
-
-/* =======================
-   Horizontal Rules
-   ======================= */
-
-.md-typeset hr {
-  border: none;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--md-primary-fg-color), transparent);
-  margin: 3rem 0;
 }
 
 /* =======================
@@ -671,16 +755,25 @@ body {
    ======================= */
 
 @media screen and (max-width: 768px) {
+  :root {
+    --md-font-7xl: 32px;
+    --md-font-6xl: 28px;
+    --md-font-5xl: 24px;
+    --md-font-4xl: 20px;
+    --md-font-3xl: 18px;
+    --md-font-2xl: 16px;
+  }
+
   .hero {
     padding: 3rem 1.5rem;
   }
   
   .hero h2 {
-    font-size: 2rem;
+    font-size: var(--md-font-6xl);
   }
   
   .hero p {
-    font-size: 1.125rem;
+    font-size: var(--md-font-base);
   }
   
   .grid.cards > ul {
@@ -693,15 +786,15 @@ body {
   }
   
   .md-typeset h1 {
-    font-size: 1.625rem;
+    font-size: var(--md-font-4xl);
   }
   
   .md-typeset h2 {
-    font-size: 1.375rem;
+    font-size: var(--md-font-3xl);
   }
   
   .md-typeset h3 {
-    font-size: 1.125rem;
+    font-size: var(--md-font-2xl);
   }
   
   .footer-cta {
@@ -709,17 +802,17 @@ body {
   }
   
   .footer-cta h2 {
-    font-size: 1.75rem;
+    font-size: var(--md-font-4xl);
   }
 }
 
 @media screen and (max-width: 480px) {
   .hero h2 {
-    font-size: 1.75rem;
+    font-size: var(--md-font-5xl);
   }
   
   .hero p {
-    font-size: 1rem;
+    font-size: var(--md-font-sm);
   }
   
   .hero .md-button {
