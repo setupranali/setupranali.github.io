@@ -12,19 +12,19 @@ theme:
   favicon: assets/favicon.ico
   
   palette:
-    # Light mode
+    # Light mode - Modern Cyan/Teal
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
-      accent: deep purple
+      primary: cyan
+      accent: teal
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-    # Dark mode
+    # Dark mode - Slate with Cyan accents
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: deep purple
+      primary: cyan
+      accent: teal
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -40,16 +40,24 @@ theme:
     - navigation.top
     - navigation.footer
     - toc.follow
+    - toc.integrate
     - search.suggest
     - search.highlight
     - search.share
     - content.tabs.link
     - content.code.copy
     - content.code.annotate
+    - content.code.select
+    - content.tooltips
     - announce.dismiss
   
   icon:
     repo: fontawesome/brands/github
+  
+  # Font configuration
+  font:
+    text: Inter
+    code: JetBrains Mono
 
 plugins:
   - search:
@@ -108,6 +116,10 @@ extra:
       link: https://linkedin.com/company/setupranali
     - icon: fontawesome/brands/discord
       link: https://discord.gg/setupranali
+  
+  # Version information
+  version:
+    provider: mike
   
   # Uncomment to enable analytics
   # analytics:
