@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer ring -->
+  <circle cx="50" cy="50" r="45" fill="none" stroke="url(#logoGradient)" stroke-width="4"/>
+  
+  <!-- Inner hexagon representing data -->
+  <polygon 
+    points="50,20 75,35 75,65 50,80 25,65 25,35" 
+    fill="url(#logoGradient)" 
+    opacity="0.9"
+  />
+  
+  <!-- Connection lines -->
+  <line x1="50" y1="50" x2="85" y2="50" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="50" y1="50" x2="15" y2="50" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="50" y1="50" x2="50" y2="15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Center dot -->
+  <circle cx="50" cy="50" r="8" fill="white"/>
+  
+  <!-- Connection endpoints -->
+  <circle cx="85" cy="50" r="4" fill="#4f46e5"/>
+  <circle cx="15" cy="50" r="4" fill="#4f46e5"/>
+  <circle cx="50" cy="15" r="4" fill="#4f46e5"/>
+</svg>
+
