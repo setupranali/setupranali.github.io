@@ -240,6 +240,8 @@ nav:
     - dbt Integration: examples/dbt.md
     - Multi-Source: examples/multi-source.md
     - Enterprise Setup: examples/enterprise.md
+  
+  - Releases: releases.md
 
 copyright: Copyright &copy; 2024-2025 SetuPranali
 
