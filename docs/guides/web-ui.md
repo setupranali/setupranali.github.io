@@ -46,14 +46,18 @@ docker run -p 8080:8080 -p 5173:5173 adeygifting/connector:latest
 
 **URL**: `/dashboard`
 
-The dashboard provides:
+The dashboard provides real-time analytics and system monitoring:
 
-- **System Health** - Server status, uptime, version
-- **Query Metrics** - Total queries, success rate, average response time
-- **Cache Statistics** - Hit rate, cache size
-- **Recent Queries** - Last executed queries with execution times
-- **Data Source Status** - Connection health for all sources
-- **Quick Actions** - Links to common tasks
+- **System Statistics** - Total queries, errors, average latency, cache hits
+- **Query Volume Chart** - Hourly query volume over the last 24 hours
+- **Query Latency Chart** - Average response time trends
+- **Recent Queries** - Last executed queries with:
+  - Execution time and status
+  - Dimensions and metrics used
+  - Dataset and source information
+  - Error details (if any)
+- **Performance Metrics** - Query success rate, average duration, total rows returned
+- **Real-time Updates** - Auto-refreshes every minute
 
 ---
 
@@ -167,36 +171,46 @@ The dashboard provides:
 
 ### Features
 
-- **YAML Editor** - Syntax-highlighted editor
+- **YAML Editor** - Monaco editor with syntax highlighting and IntelliSense
 - **Model Selection** - Choose semantic model to edit
-- **Validation** - Real-time YAML validation
+- **Pull from Model** - Generate YAML from semantic model (includes `sourceTable` for all fields)
+- **Push to Model** - Update semantic model from YAML contract
+- **Validation** - Real-time YAML validation with error highlighting
 - **Auto-save** - Local storage for drafts
-- **Export** - Download YAML contracts
-- **Import** - Load existing contracts
-- **Error Highlighting** - Visual feedback for syntax errors
+- **Export/Import** - Download and upload YAML contracts
+- **Bulk Operations** - Export/import all contracts at once
+- **Source Table Mapping** - Visual indication of table assignments for dimensions and metrics
 
 ### Using Contract Editor
 
 1. Select a semantic model from dropdown
-2. View/edit YAML content
-3. Validation runs automatically
-4. Save to local storage
-5. Export when ready
+2. Click **"Pull from Model"** to generate YAML with correct `sourceTable` mappings
+3. Edit YAML content (update `sourceTable` values if needed)
+4. Validation runs automatically
+5. Click **"Push to Model"** to update the semantic model
+6. Export/import contracts as needed
+
+### Key Features
+
+- **Automatic sourceTable Inclusion** - All dimensions and metrics include `sourceTable` field
+- **Table Validation** - Pre-query validation ensures `sourceTable` exists in ERD
+- **Error Messages** - Clear guidance when columns are in wrong tables
+- **Bulk Export/Import** - Manage all contracts at once
 
 ---
 
 ## Analytics
 
-**URL**: `/analytics`
+**URL**: `/analytics` (redirects to `/dashboard`)
 
-### Features
+Analytics are integrated into the Dashboard page, providing:
 
-- **Query Patterns** - Most common queries
-- **Performance Metrics** - Response times, cache hit rates
-- **Usage Statistics** - Queries per dataset, per tenant
-- **Time-based Analysis** - Trends over time
-- **Error Tracking** - Failed queries and reasons
-- **Export Data** - Download analytics reports
+- **Query Volume** - Hourly query count over the last 24 hours
+- **Query Latency** - Average response time trends
+- **Recent Queries** - Last executed queries with full details
+- **Performance Metrics** - Success rate, average duration, total rows
+- **Real-time Updates** - Auto-refreshes every minute
+- **DuckDB Storage** - Persistent analytics storage for historical data
 
 ---
 
@@ -206,11 +220,19 @@ The dashboard provides:
 
 ### Configuration Options
 
-- **API URL** - Backend API endpoint
-- **Theme** - Light/dark mode
-- **Cache Settings** - Enable/disable caching
-- **Rate Limiting** - Configure limits
-- **Notifications** - Alert preferences
+- **Appearance**
+  - **Dark Mode Toggle** - Switch between light and dark themes
+  - Theme preference saved to localStorage
+  
+- **Notifications**
+  - **Query Alerts** - Enable/disable query failure notifications
+  - Preference saved to localStorage
+  
+- **Security**
+  - **Session Timeout** - Configure session duration (15 min, 30 min, 1 hour, never)
+  - Preference saved to localStorage
+
+All settings are persisted locally and restored on page reload.
 
 ---
 

@@ -68,7 +68,14 @@ It's an open-source semantic gateway that bridges your BI tools (Power BI, Table
 - **👁️ LookML Import** — Import Looker/LookML models
 - **📊 Power BI Sync** — Sync to Power BI Service
 - **🖥️ VS Code Extension** — Catalog editing with IntelliSense
-- **🌐 Web UI** — Admin dashboard for configuration
+- **🌐 Web UI** — Full-featured admin dashboard with:
+  - Real-time analytics dashboard with query volume and latency charts
+  - Modeling Studio for visual BI modeling (ERD builder, semantic model editor)
+  - Contract Editor with Pull/Push to Model functionality
+  - Query Playground for interactive query testing
+  - API Key management with usage tracking
+  - Data source configuration and testing
+  - Settings with dark mode and preferences
 - **📊 Tableau Hyper Export** — Export datasets as Hyper files
 - **🔗 Embedded Analytics** — Embed-ready endpoints with tokens
 - **🏷️ White-Label** — Custom branding for OEM deployments

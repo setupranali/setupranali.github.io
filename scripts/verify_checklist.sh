@@ -127,7 +127,7 @@ echo "7. Testing SQLGlot Integration..."
 cd "$(dirname "$0")/.." > /dev/null
 RESULT=$(python3 << 'EOF'
 try:
-    from app.sql_builder import SQLBuilder
+    from app.domain.query.builder import SQLBuilder
     builder = SQLBuilder(dialect="postgres")
     sql, _ = builder.build_query(
         dimensions=["city"],

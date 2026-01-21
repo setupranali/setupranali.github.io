@@ -1,0 +1,27 @@
+# Development Configuration
+# Used when ENV=development
+
+app:
+  name: "SetuPranali"
+  version: "1.0.0"
+  debug: true
+
+security:
+  secret_key: "dev-secret-key-change-in-production"
+  api_key_header: "X-API-Key"
+
+database:
+  redis_url: null  # Use in-memory fallback in development
+  cache_enabled: false  # Disable cache in development for easier debugging
+
+observability:
+  analytics_enabled: true
+  analytics_retention_hours: 168  # 7 days
+
+rate_limiting:
+  enabled: false  # Disable rate limiting in development
+  per_minute: 60
+
+logging:
+  level: "DEBUG"
+  format: "detailed"

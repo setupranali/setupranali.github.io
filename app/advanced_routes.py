@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.security import require_api_key, TenantContext
+from app.core.security import require_api_key, TenantContext
 from app.advanced_features import (
     get_advanced_service,
     init_advanced_features,

@@ -62,11 +62,11 @@ fi
 # Check database files
 echo ""
 echo "5. Checking database files..."
-if [ -d "app/db" ]; then
+if [ -d "data/db" ]; then
     echo "   ✅ Database directory exists"
 else
     echo "   Creating database directory..."
-    mkdir -p app/db
+    mkdir -p data/db
     echo "   ✅ Database directory created"
 fi
 

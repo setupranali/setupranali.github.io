@@ -10,8 +10,8 @@ import strawberry
 from strawberry.fastapi import GraphQLRouter
 from strawberry.types import Info
 
-from app.catalog import load_catalog, get_dataset
-from app.security import TenantContext
+from app.domain.sources import load_catalog, get_dataset
+from app.core.security import TenantContext
 
 
 # =============================================================================
@@ -144,7 +144,7 @@ def get_tenant_from_context(info: Info) -> TenantContext:
         return TenantContext(tenant="default", role="viewer", key_name="anonymous")
     
     # Import here to avoid circular imports
-    from app.security import validate_api_key
+    from app.core.security import validate_api_key
     try:
         return validate_api_key(api_key)
     except Exception:
@@ -162,7 +162,7 @@ class Query:
     @strawberry.field
     def health(self) -> HealthStatus:
         """Get system health status."""
-        from app.cache import get_cache_stats
+        from app.infrastructure.cache.redis_cache import get_cache_stats
         cache_stats = get_cache_stats()
         
         return HealthStatus(
@@ -231,10 +231,10 @@ class Query:
         Automatically applies Row-Level Security based on API key tenant.
         """
         import time
-        from app.query_engine import compile_and_run_query
-        from app.cache import execute_with_cache, build_cache_components_from_request
-        from app.models import QueryRequest, DimensionRequest, MetricRequest, FilterRequest
-        from app.sources import SOURCES
+        from app.domain.query.query_engine import compile_and_run_query
+        from app.infrastructure.cache.redis_cache import execute_with_cache, build_cache_components_from_request
+        from app.shared.types.models import QueryRequest, QueryDimension, QueryMetric
+        from app.domain.sources.manager import SOURCES
         from app.connection_manager import get_engine_and_conn
         
         start_time = time.time()
@@ -324,7 +324,7 @@ class Mutation:
         Invalidate cache for a dataset.
         Requires admin role.
         """
-        from app.cache import invalidate_dataset_cache
+        from app.infrastructure.cache.redis_cache import invalidate_dataset_cache
         
         ctx = get_tenant_from_context(info)
         if ctx.role != "admin":

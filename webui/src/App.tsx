@@ -97,11 +97,7 @@ function App() {
         />
         <Route
           path="analytics"
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <Analytics />
-            </Suspense>
-          }
+          element={<Navigate to="/dashboard" replace />}
         />
         <Route
           path="settings"

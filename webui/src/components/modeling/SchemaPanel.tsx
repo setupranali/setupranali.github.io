@@ -92,12 +92,24 @@ export function SchemaPanel({
         setSchemas(data);
         return data;
       } catch (error: any) {
+        // If source not found (404), don't retry and show user-friendly message
+        if (error?.response?.status === 404 || error?.message?.includes('not found')) {
+          console.warn(`Source ${sourceId} not found - it may have been deleted`);
+          throw new Error(`Source not found. It may have been deleted. Please select a different source.`);
+        }
         console.error('Failed to fetch schemas:', error);
         throw error;
       }
     },
     enabled: !!sourceId,
-    retry: 1,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 404 errors (source not found)
+      if (error?.response?.status === 404 || error?.message?.includes('not found')) {
+        return false;
+      }
+      // Retry once for other errors
+      return failureCount < 1;
+    },
   });
 
   // Handle full refresh - clears all cached data and refetches

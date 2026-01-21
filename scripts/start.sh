@@ -38,20 +38,27 @@ echo ""
 # Start backend
 echo "1. Starting Backend (port 8080)..."
 cd "$(dirname "$0")/.."
-nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8080 > /tmp/ubi-backend.log 2>&1 &
-BACKEND_PID=$!
-echo "   Backend PID: $BACKEND_PID"
-echo "   Logs: /tmp/ubi-backend.log"
 
-# Wait for backend to start
-sleep 3
-
-# Check if backend started
+# Check if backend is already running
 if curl -s http://localhost:8080/v1/health > /dev/null 2>&1; then
-    echo "   ✅ Backend is running"
+    echo "   ✅ Backend is already running on port 8080"
+    echo "   Using existing backend instance"
 else
-    echo "   ❌ Backend failed to start. Check logs: /tmp/ubi-backend.log"
-    exit 1
+    nohup python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8080 > /tmp/ubi-backend.log 2>&1 &
+    BACKEND_PID=$!
+    echo "   Backend PID: $BACKEND_PID"
+    echo "   Logs: /tmp/ubi-backend.log"
+    
+    # Wait for backend to start
+    sleep 3
+    
+    # Check if backend started
+    if curl -s http://localhost:8080/v1/health > /dev/null 2>&1; then
+        echo "   ✅ Backend started successfully"
+    else
+        echo "   ❌ Backend failed to start. Check logs: /tmp/ubi-backend.log"
+        exit 1
+    fi
 fi
 
 # Start frontend
@@ -88,6 +95,6 @@ echo "Frontend: http://localhost:5173"
 echo "API Docs: http://localhost:8080/docs"
 echo ""
 echo "To stop servers:"
-echo "  kill $BACKEND_PID $FRONTEND_PID"
+echo "  kill $BACKEND_PID $FRONTEND_PID" 
+echo "lsof -ti :8080 -i :5173 | xargs kill -9"
 echo ""
-

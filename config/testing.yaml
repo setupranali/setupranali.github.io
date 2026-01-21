@@ -1,0 +1,27 @@
+# Testing Configuration
+# Used when ENV=testing
+
+app:
+  name: "SetuPranali-Test"
+  version: "1.0.0"
+  debug: true
+
+security:
+  secret_key: "test-secret-key"
+  api_key_header: "X-API-Key"
+
+database:
+  redis_url: null  # Use in-memory for tests
+  cache_enabled: false
+
+observability:
+  analytics_enabled: false  # Disable analytics in tests
+  analytics_retention_hours: 1
+
+rate_limiting:
+  enabled: false  # Disable rate limiting in tests
+  per_minute: 1000
+
+logging:
+  level: "WARNING"  # Reduce log noise in tests
+  format: "simple"

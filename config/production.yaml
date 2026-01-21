@@ -1,0 +1,31 @@
+# Production Configuration
+# Used when ENV=production
+
+app:
+  name: "SetuPranali"
+  version: "1.0.0"
+  debug: false
+
+security:
+  secret_key: "${UBI_SECRET_KEY}"  # Must be set via environment variable
+  api_key_header: "X-API-Key"
+
+database:
+  redis_url: "${REDIS_URL}"  # Must be set via environment variable
+  cache_enabled: true
+
+observability:
+  analytics_enabled: true
+  analytics_retention_hours: 720  # 30 days
+
+rate_limiting:
+  enabled: true
+  per_minute: 100
+
+logging:
+  level: "INFO"
+  format: "json"  # Structured logging for production
+
+performance:
+  max_query_timeout: 300  # 5 minutes
+  max_result_size: 100000  # 100K rows

@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 
-from app.security import require_api_key, TenantContext
+from app.core.security import require_api_key, TenantContext
 from app.enterprise.tableau_hyper import get_hyper_service
 from app.enterprise.embedded_analytics import get_embed_service, EmbedConfig
 from app.enterprise.white_label import get_white_label_service
@@ -131,7 +131,7 @@ async def export_to_hyper(
     
     # Set catalog if available
     try:
-        from app.catalog import load_catalog
+        from app.domain.sources import load_catalog
         catalog = load_catalog()
         service.set_catalog(catalog)
     except Exception:

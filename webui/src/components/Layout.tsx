@@ -6,7 +6,6 @@ import {
   Key, 
   Play, 
   FileText, 
-  BarChart3,
   Settings,
   Menu,
   X,
@@ -24,7 +23,7 @@ const navigation = [
   { name: 'API Keys', href: '/api-keys', icon: Key },
   { name: 'Query Playground', href: '/playground', icon: Play },
   { name: 'Contracts', href: '/contracts', icon: FileText },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  // Analytics redirects to Dashboard (same content)
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 

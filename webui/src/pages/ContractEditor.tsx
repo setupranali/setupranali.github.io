@@ -68,6 +68,7 @@ function generateContractYaml(model: any): string {
     name: dim.name.toLowerCase().replace(/\s+/g, '_'),
     field: dim.sourceColumn || dim.name.toLowerCase().replace(/\s+/g, '_'),
     label: dim.name,
+    sourceTable: dim.sourceTable || dimensions[0]?.sourceTable || 'unknown_table', // Include sourceTable
   }));
 
   // Build metrics section
@@ -80,6 +81,7 @@ function generateContractYaml(model: any): string {
       field: m.sourceColumn || m.expression || m.name.toLowerCase().replace(/\s+/g, '_'),
     },
     returnType: 'double',
+    sourceTable: m.sourceTable || dimensions[0]?.sourceTable || 'unknown_table', // Include sourceTable
   }));
 
   // Add calculated fields as metrics
@@ -140,7 +142,8 @@ ${fields.map((f: any) => `      - name: ${f.name}
     dimensions:
 ${dimensionDefs.map((d: any) => `      - name: ${d.name}
         field: ${d.field}
-        label: "${d.label}"`).join('\n')}
+        label: "${d.label}"
+        sourceTable: ${d.sourceTable}`).join('\n')}
     
     # Metric definitions
     metrics:
@@ -149,7 +152,8 @@ ${metricDefs.map((m: any) => `      - name: ${m.name}
         expression:
           type: ${m.expression.type}
           ${m.expression.type === 'aggregation' ? `agg: ${m.expression.agg}\n          field: ${m.expression.field}` : `formula: "${m.expression.formula}"`}
-        returnType: ${m.returnType}`).join('\n')}
+        returnType: ${m.returnType}
+        sourceTable: ${m.sourceTable}`).join('\n')}
 `;
 
   return yaml;
@@ -405,11 +409,30 @@ export default function ContractEditor() {
     setValidationResult(null);
   };
 
-  const handleRegenerate = () => {
-    if (selectedModelQuery.data) {
-      setContent(generateContractYaml(selectedModelQuery.data));
+  const handleRegenerate = async () => {
+    if (!selectedModelId) {
+      setSyncMessage({ type: 'error', text: 'Please select a semantic model first' });
+      return;
+    }
+    
+    try {
+      // Use backend API to generate YAML (includes sourceTable)
+      const response = await axios.get<ContractData>(
+        `${API_BASE}/v1/modeling/semantic/${selectedModelId}/yaml`
+      );
+      setContent(response.data.content);
       setHasChanges(true);
       setSyncMessage(null);
+    } catch (error: any) {
+      // Fallback to frontend generation if API fails
+      console.warn('Failed to fetch YAML from backend, using frontend generation:', error);
+      if (selectedModelQuery.data) {
+        setContent(generateContractYaml(selectedModelQuery.data));
+        setHasChanges(true);
+        setSyncMessage(null);
+      } else {
+        setSyncMessage({ type: 'error', text: 'Failed to generate contract. Please try again.' });
+      }
     }
   };
 
@@ -456,6 +479,132 @@ export default function ContractEditor() {
           setHasChanges(true);
         };
         reader.readAsText(file);
+      }
+    };
+    input.click();
+  };
+
+  // Export all contracts to JSON file
+  const handleExportAll = () => {
+    if (!semanticModelsQuery.data || semanticModelsQuery.data.length === 0) {
+      alert('No semantic models found to export contracts from.');
+      return;
+    }
+
+    const contracts: Array<{
+      modelId: string;
+      modelName: string;
+      sourceId: string;
+      content: string;
+      lastModified?: string;
+    }> = [];
+
+    // Collect all contracts from localStorage
+    semanticModelsQuery.data.forEach((model) => {
+      const storedContract = getStoredContract(model.id);
+      if (storedContract) {
+        contracts.push({
+          modelId: model.id,
+          modelName: model.name,
+          sourceId: model.sourceId,
+          content: storedContract.content,
+          lastModified: storedContract.lastModified,
+        });
+      } else {
+        // Try to fetch from API or generate
+        // For now, just include model info without content
+        contracts.push({
+          modelId: model.id,
+          modelName: model.name,
+          sourceId: model.sourceId,
+          content: '', // Will need to be fetched/generated on import
+        });
+      }
+    });
+
+    const exportData = {
+      contracts,
+      exportedAt: new Date().toISOString(),
+      version: '1.0',
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `setupranali-contracts-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Import all contracts from JSON file
+  const handleImportAll = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const importData = JSON.parse(text);
+
+        // Validate import data structure
+        if (!importData.contracts || !Array.isArray(importData.contracts)) {
+          alert('Invalid import file format. Expected contracts array.');
+          return;
+        }
+
+        // Confirm import
+        const confirmed = window.confirm(
+          `This will import ${importData.contracts.length} contract(s). ` +
+          `Existing contracts will be overwritten. Continue?`
+        );
+        if (!confirmed) return;
+
+        // Import each contract
+        let importedCount = 0;
+        let skippedCount = 0;
+
+        for (const contract of importData.contracts) {
+          try {
+            if (!contract.modelId || !contract.content) {
+              console.warn(`Skipping contract for ${contract.modelName || 'unknown'}: missing modelId or content`);
+              skippedCount++;
+              continue;
+            }
+
+            // Store contract in localStorage
+            const contractData: ContractData = {
+              content: contract.content,
+              lastModified: contract.lastModified || new Date().toISOString(),
+            };
+            localStorage.setItem(
+              `${CONTRACT_STORAGE_PREFIX}${contract.modelId}`,
+              JSON.stringify(contractData)
+            );
+            importedCount++;
+          } catch (error) {
+            console.error(`Failed to import contract for ${contract.modelName || 'unknown'}:`, error);
+            skippedCount++;
+          }
+        }
+
+        // Refresh the current contract if it was imported
+        if (selectedModelId && importData.contracts.some((c: any) => c.modelId === selectedModelId)) {
+          queryClient.invalidateQueries({ queryKey: ['contract', selectedModelId] });
+        }
+
+        // Show result
+        alert(
+          `Import completed!\n` +
+          `✅ Imported: ${importedCount}\n` +
+          (skippedCount > 0 ? `⚠️ Skipped: ${skippedCount}` : '')
+        );
+      } catch (error) {
+        console.error('Failed to import contracts:', error);
+        alert('Failed to import contracts. Please check the file format and try again.');
       }
     };
     input.click();
@@ -662,16 +811,33 @@ export default function ContractEditor() {
           <button
             onClick={handleDownload}
             className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-            title="Download YAML"
+            title="Download current contract as YAML"
           >
             <Download className="w-4 h-4 text-slate-400" />
           </button>
           <button
             onClick={handleUpload}
             className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-            title="Upload YAML"
+            title="Upload YAML file for current contract"
           >
             <Upload className="w-4 h-4 text-slate-400" />
+          </button>
+          <div className="w-px h-6 bg-slate-700 mx-1" />
+          <button
+            onClick={handleExportAll}
+            className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-700 rounded-lg text-sm text-slate-400 transition-colors"
+            title="Export all contracts to JSON"
+          >
+            <Download className="w-4 h-4" />
+            Export All
+          </button>
+          <button
+            onClick={handleImportAll}
+            className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-700 rounded-lg text-sm text-slate-400 transition-colors"
+            title="Import all contracts from JSON"
+          >
+            <Upload className="w-4 h-4" />
+            Import All
           </button>
         </div>
       </div>

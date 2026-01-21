@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { 
   Database, 
   Server, 
   Key, 
   Activity,
-  TrendingUp,
   Clock,
   AlertTriangle,
   CheckCircle
@@ -21,25 +21,6 @@ import {
   Area
 } from 'recharts';
 import { api } from '../lib/api';
-
-// Mock data for demo
-const mockQueryData = [
-  { time: '00:00', queries: 120, errors: 2 },
-  { time: '04:00', queries: 80, errors: 1 },
-  { time: '08:00', queries: 350, errors: 5 },
-  { time: '12:00', queries: 520, errors: 8 },
-  { time: '16:00', queries: 480, errors: 6 },
-  { time: '20:00', queries: 280, errors: 3 },
-];
-
-const mockLatencyData = [
-  { time: '00:00', p50: 45, p95: 120, p99: 250 },
-  { time: '04:00', p50: 42, p95: 110, p99: 230 },
-  { time: '08:00', p50: 58, p95: 180, p99: 380 },
-  { time: '12:00', p50: 62, p95: 200, p99: 420 },
-  { time: '16:00', p50: 55, p95: 170, p99: 350 },
-  { time: '20:00', p50: 48, p95: 130, p99: 280 },
-];
 
 export default function Dashboard() {
   const { data: health } = useQuery({
@@ -71,6 +52,33 @@ export default function Dashboard() {
     staleTime: 0,
   });
 
+  // Fetch real analytics data
+  const { data: analytics, error: analyticsError } = useQuery({
+    queryKey: ['analytics'],
+    queryFn: () => api.getAnalytics(24), // Pass hours as number, not object
+    refetchInterval: 60000, // Refresh every minute
+    refetchOnMount: 'always',
+    staleTime: 0,
+  });
+
+  // Debug: Log analytics data
+  useEffect(() => {
+    if (analyticsError) {
+      console.error('❌ Analytics API Error:', analyticsError);
+    } else if (analytics) {
+      console.log('✅ Analytics data received:', {
+        hasQueryVolume: !!analytics.query_volume,
+        queryVolumeLength: analytics.query_volume?.length || 0,
+        hasLatency: !!analytics.latency,
+        hasRecentQueries: !!analytics.recent_queries,
+        recentQueriesLength: analytics.recent_queries?.length || 0,
+        stats: analytics.stats,
+      });
+    } else {
+      console.log('⏳ Analytics data is loading...');
+    }
+  }, [analytics, analyticsError]);
+
   const stats = [
     {
       name: 'Datasets',
@@ -92,19 +100,51 @@ export default function Dashboard() {
     },
     {
       name: 'Cache Hit Rate',
-      value: health?.cache?.enabled ? '94.5%' : 'N/A',
+      value: analytics?.stats?.cache_hit_rate 
+        ? `${(analytics.stats.cache_hit_rate * 100).toFixed(1)}%` 
+        : (health?.cache?.enabled ? 'N/A' : 'Disabled'),
       icon: Activity,
       color: 'text-orange-600 bg-orange-100 dark:bg-orange-900/50',
     },
   ];
 
-  const recentQueries = [
-    { dataset: 'orders', metrics: ['revenue', 'count'], duration: '45ms', status: 'success' },
-    { dataset: 'customers', metrics: ['lifetime_value'], duration: '120ms', status: 'success' },
-    { dataset: 'products', metrics: ['inventory'], duration: '380ms', status: 'warning' },
-    { dataset: 'orders', metrics: ['aov'], duration: '52ms', status: 'success' },
-    { dataset: 'sessions', metrics: ['bounce_rate'], duration: '890ms', status: 'error' },
-  ];
+  // Use real analytics data or fallback to empty arrays
+  const queryVolumeData = analytics?.query_volume || [];
+  const latencyData = analytics?.latency || [];
+  const recentQueries = analytics?.recent_queries || [];
+
+  // Debug: Log data being used for charts
+  useEffect(() => {
+    console.log('📊 Chart Data:', {
+      queryVolumeDataLength: queryVolumeData.length,
+      latencyDataLength: latencyData.length,
+      recentQueriesLength: recentQueries.length,
+      firstQueryVolumeItem: queryVolumeData[0],
+      hasNonZeroQueries: queryVolumeData.some((v: any) => v.queries > 0),
+    });
+  }, [queryVolumeData, latencyData, recentQueries]);
+
+  // Show error message if analytics failed to load
+  if (analyticsError) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
+            Overview of your SetuPranali instance
+          </p>
+        </div>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200">
+            <strong>Error loading analytics:</strong> {analyticsError instanceof Error ? analyticsError.message : 'Unknown error'}
+          </p>
+          <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+            Please check the browser console for more details.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -162,7 +202,7 @@ export default function Dashboard() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={mockQueryData}>
+            <AreaChart data={queryVolumeData.length > 0 ? queryVolumeData : [{ time: '00:00', queries: 0, errors: 0 }]}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
               <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} />
               <YAxis stroke="#9CA3AF" fontSize={12} />
@@ -219,7 +259,7 @@ export default function Dashboard() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={mockLatencyData}>
+            <LineChart data={latencyData.length > 0 ? latencyData : [{ time: '00:00', p50: 0, p95: 0, p99: 0 }]}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
               <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} />
               <YAxis stroke="#9CA3AF" fontSize={12} unit="ms" />
@@ -247,7 +287,8 @@ export default function Dashboard() {
           </h3>
         </div>
         <div className="divide-y divide-gray-200 dark:divide-gray-800">
-          {recentQueries.map((query, i) => (
+          {recentQueries.length > 0 ? (
+            recentQueries.map((query: any, i: number) => (
             <div key={i} className="px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 {query.status === 'success' && (
@@ -264,7 +305,11 @@ export default function Dashboard() {
                     {query.dataset}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {query.metrics.join(', ')}
+                    {query.metrics && query.metrics.length > 0 
+                      ? query.metrics.join(', ')
+                      : (query.dimensions && query.dimensions.length > 0
+                          ? `Columns: ${query.dimensions.join(', ')}`
+                          : 'No metrics or dimensions')}
                   </p>
                 </div>
               </div>
@@ -273,7 +318,12 @@ export default function Dashboard() {
                 {query.duration}
               </div>
             </div>
-          ))}
+          ))
+          ) : (
+            <div className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+              No queries yet. Execute some queries to see analytics here.
+            </div>
+          )}
         </div>
       </div>
 
@@ -294,7 +344,11 @@ export default function Dashboard() {
             </div>
             <div className="flex justify-between py-1">
               <span className="text-gray-500 dark:text-gray-400">Avg Response</span>
-              <span className="text-gray-900 dark:text-white">48ms</span>
+              <span className="text-gray-900 dark:text-white">
+                {analytics?.stats?.avg_duration_ms 
+                  ? `${Math.round(analytics.stats.avg_duration_ms)}ms` 
+                  : 'N/A'}
+              </span>
             </div>
           </div>
         </div>
@@ -311,7 +365,11 @@ export default function Dashboard() {
             <div className="mt-4 text-sm">
               <div className="flex justify-between py-1">
                 <span className="text-gray-500 dark:text-gray-400">Hit Rate</span>
-                <span className="text-gray-900 dark:text-white">94.5%</span>
+                <span className="text-gray-900 dark:text-white">
+                  {analytics?.stats?.cache_hit_rate 
+                    ? `${(analytics.stats.cache_hit_rate * 100).toFixed(1)}%` 
+                    : 'N/A'}
+                </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-gray-500 dark:text-gray-400">Size</span>

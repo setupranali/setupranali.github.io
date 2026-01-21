@@ -131,6 +131,7 @@ export function SemanticModelPanel({
     onSuccess: (measure) => {
       // Already added locally, just close dialog if open
       setShowAddDialog(false);
+      // Note: ID replacement is handled in the drop handler if needed
     },
     onError: (error) => {
       console.error('Failed to add measure to API:', error);
@@ -251,16 +252,29 @@ export function SemanticModelPanel({
         
         console.log('Adding measure:', newMeasure);
         
+        // Store the local ID temporarily
+        const localMeasureId = newMeasure.id;
+        
         // Add to local store immediately for instant feedback
         addMeasure(newMeasure);
         
-        // Optionally sync to API in background
-        addMeasureMutation.mutate(newMeasure);
+        // Sync to API and update with backend ID when it returns
+        addMeasureMutation.mutate(newMeasure, {
+          onSuccess: (backendMeasure) => {
+            // Replace local measure with backend measure (which has the correct ID)
+            if (backendMeasure.id !== localMeasureId) {
+              // Remove the local measure with temporary ID
+              removeMeasure(localMeasureId);
+              // Add the backend measure with correct ID
+              addMeasure(backendMeasure);
+            }
+          },
+        });
       }
     } catch (error) {
       console.error('Failed to parse drop data:', error);
     }
-  }, [activeSection, addDimension, addMeasure, addDimensionMutation, addMeasureMutation]);
+  }, [activeSection, addDimension, addMeasure, removeMeasure, addDimensionMutation, addMeasureMutation]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();

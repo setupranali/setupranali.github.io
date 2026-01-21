@@ -160,8 +160,9 @@ data warehouse and your BI tools.
     Your modeling layer, your rules.
 
 :material-web:{ .feature-icon } **Web UI & Modeling Studio**
-:   Full-featured admin dashboard and visual modeling interface.
-    Build semantic models without writing YAML.
+:   Full-featured admin dashboard with real-time analytics, visual BI modeling interface,
+    contract editor with Pull/Push to Model, query playground, and API key management.
+    Build semantic models without writing YAML, with automatic sourceTable mapping.
 
 :material-code-braces:{ .feature-icon } **SQL Dialect Conversion**
 :   Automatic SQL conversion between databases using SQLGlot.

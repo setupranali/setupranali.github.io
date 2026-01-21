@@ -15,9 +15,26 @@ PRODUCTION FEATURES:
 
 import os
 import uuid
+import time
 import logging
+from typing import Optional
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv not installed, try to load .env manually
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 import duckdb
 from fastapi import FastAPI, HTTPException, Depends, Request, Body
@@ -25,24 +42,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from app.catalog import load_catalog, get_dataset
-from app.models import QueryRequest, QueryResponse, ResultColumn
-from app.sources import (
+from app.domain.sources.catalog import load_catalog, get_dataset
+from app.shared.types.models import QueryRequest, QueryResponse, ResultColumn
+from app.domain.sources.manager import (
     register_source, list_sources, get_source, get_source_with_config,
     init_database as init_sources_db
 )
 from app.connection_manager import get_engine_and_conn
-from app.adapters.duckdb_adapter import get_shared_duckdb
+from app.infrastructure.adapters.duckdb_adapter import get_shared_duckdb
 from app.odata import router as odata_router
 from app.graphql_api import graphql_router
 from app.advanced_routes import router as advanced_router
 from app.ecosystem.routes import router as ecosystem_router
 from app.enterprise.routes import router as enterprise_router
-from app.modeling.routes import router as modeling_router
-from app.security import require_api_key, require_internal_admin, TenantContext
-from app.crypto import is_encryption_configured
+from app.domain.modeling.modeling.routes import router as modeling_router
+from app.api.v1.analytics import router as analytics_router
+from app.core.security import require_api_key, require_internal_admin, TenantContext
+from app.shared.utils.crypto import is_encryption_configured
 from app.rate_limit import limit_query, limit_odata, limit_sources
-from app.errors import (
+from app.shared.exceptions.errors import (
     install_error_handlers,
     dataset_not_found,
     dimension_not_found,
@@ -92,6 +110,9 @@ app = FastAPI(
     description="Semantic analytics layer for BI tools (Power BI, Tableau)"
 )
 
+# Register API routers
+app.include_router(analytics_router)
+
 
 # =============================================================================
 # STARTUP & SHUTDOWN
@@ -123,7 +144,7 @@ async def startup_event():
         warnings_logged.append(msg)
     
     # Check cache
-    from app.cache import get_cache_config
+    from app.infrastructure.cache.redis_cache import get_cache_config
     cache_config = get_cache_config()
     if not cache_config.enabled:
         msg = "Query caching is disabled."
@@ -141,6 +162,92 @@ async def startup_event():
     # Setup rate limiting
     from app.rate_limit import setup_rate_limiting
     setup_rate_limiting(app)
+    
+    # Initialize state storage (DuckDB)
+    try:
+        from app.infrastructure.storage import init_state_storage
+        storage = init_state_storage()
+        logger.info("State storage (DuckDB) initialized")
+        
+        # Migrate default API keys from in-memory registry to DuckDB
+        try:
+            from app.core.security import _API_KEY_REGISTRY
+            default_keys = [
+                "dev-key-123",
+                "readonly-key-456",
+                "tenantA-key",
+                "tenantB-key",
+                "tenantA-admin-key",
+                "internal-admin-key",
+            ]
+            for api_key in default_keys:
+                record = _API_KEY_REGISTRY.get(api_key)
+                if record:
+                    # Check if already exists in DuckDB
+                    existing = storage.get_api_key(api_key)
+                    if not existing:
+                        storage.save_api_key({
+                            "key_id": record.key_id,
+                            "api_key": api_key,
+                            "tenant": record.tenant,
+                            "role": record.role,
+                            "name": record.name,
+                            "status": record.status,
+                            "created_at": record.created_at,
+                            "last_used_at": record.last_used_at,
+                            "expires_at": None,
+                        })
+            logger.info("Default API keys migrated to DuckDB")
+        except Exception as e:
+            logger.debug(f"Failed to migrate default keys: {e}")
+    except Exception as e:
+        logger.warning(f"Failed to initialize state storage: {e}")
+    
+    # Initialize observability (uses state storage)
+    try:
+        from app.infrastructure.observability import init_observability, get_analytics
+        init_observability()
+        # Verify initialization
+        analytics = get_analytics()
+        if analytics:
+            logger.info("✓ Observability initialized successfully")
+            logger.info(f"  Analytics enabled: {analytics.config.analytics_enabled}")
+            logger.info(f"  Storage type: {'DuckDB' if (hasattr(analytics, '_use_storage') and analytics._use_storage) else 'in-memory'}")
+        else:
+            logger.error("✗ Observability initialization failed - analytics is None")
+    except Exception as e:
+        logger.error(f"✗ Failed to initialize observability: {e}", exc_info=True)
+    
+    # Schedule periodic cleanup of old query records
+    try:
+        import threading
+        from app.infrastructure.storage import get_state_storage
+        from app.infrastructure.observability import get_analytics
+        
+        def cleanup_old_records():
+            """Periodic cleanup of old query records."""
+            import time
+            time.sleep(3600)  # Wait 1 hour before first cleanup
+            while True:
+                try:
+                    storage = get_state_storage()
+                    analytics = get_analytics()
+                    if storage and analytics:
+                        deleted = storage.cleanup_old_records(
+                            retention_hours=analytics.config.analytics_retention_hours
+                        )
+                        if deleted > 0:
+                            logger.info(f"Cleaned up {deleted} old query records")
+                    time.sleep(3600)  # Run every hour
+                except Exception as e:
+                    logger.warning(f"Cleanup job error: {e}")
+                    time.sleep(3600)  # Wait before retrying
+        
+        cleanup_thread = threading.Thread(target=cleanup_old_records, daemon=True)
+        cleanup_thread.start()
+        logger.info("Query records cleanup job started (runs hourly)")
+    except Exception as e:
+        logger.debug(f"Failed to start cleanup job: {e}")
     
     # Log startup summary
     if warnings_logged:
@@ -180,10 +287,17 @@ async def add_request_id(request: Request, call_next):
 # CORS middleware for Tableau WDC and browser-based clients
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict in production
+    allow_origins=[
+        "http://localhost:5173",  # Vite dev server
+        "http://localhost:3000",  # Alternative dev port
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        "*"  # Allow all for development (restrict in production)
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["*", "X-API-Key"],
+    allow_headers=["*", "X-API-Key", "Content-Type", "Authorization"],
+    expose_headers=["*"],
 )
 
 
@@ -232,6 +346,9 @@ app.include_router(
     tags=["Modeling"]
 )
 
+# Analytics API endpoints
+app.include_router(analytics_router)
+
 
 # =============================================================================
 # DEMO DATA
@@ -277,20 +394,66 @@ seed_demo_data()  # Enabled for testing - comment out for production
 @app.get("/v1/api-keys", tags=["API Keys"])
 def list_api_keys():
     """List all API keys (for admin purposes)."""
-    from app.security import _API_KEY_REGISTRY
+    from app.core.security import _API_KEY_REGISTRY
     
+    # Collect keys from both sources and merge (deduplicate by key_id)
+    all_keys = {}
+    
+    # Try DuckDB state storage first
+    try:
+        from app.infrastructure.storage.state_storage import get_state_storage
+        storage = get_state_storage()
+        duckdb_keys = storage.list_api_keys()
+        for k in duckdb_keys:
+            key_id = k.get("key_id")
+            if key_id:
+                all_keys[key_id] = {
+                    "key_id": key_id,
+                    "name": k.get("name"),
+                    "tenant": k.get("tenant"),
+                    "role": k.get("role"),
+                    "status": k.get("status"),
+                    "created_at": k.get("created_at"),
+                    "last_used_at": k.get("last_used_at")
+                }
+        logger.debug(f"Retrieved {len(duckdb_keys)} keys from DuckDB storage")
+    except Exception as e:
+        logger.debug(f"Failed to list keys from state storage: {e}")
+    
+    # Also get from in-memory registry (may have more recent keys)
+    for record in _API_KEY_REGISTRY.values():
+        key_id = record.key_id
+        if key_id:
+            # Use in-memory if not in DuckDB, or if in-memory is more recent
+            if key_id not in all_keys or (record.created_at and (
+                not all_keys[key_id].get("created_at") or 
+                record.created_at > all_keys[key_id].get("created_at")
+            )):
+                all_keys[key_id] = {
+                    "key_id": record.key_id,
+                    "name": record.name,
+                    "tenant": record.tenant,
+                    "role": record.role,
+                    "status": record.status,
+                    "created_at": record.created_at,
+                    "last_used_at": record.last_used_at
+                }
+    
+    logger.debug(f"Total unique keys found: {len(all_keys)}")
+    
+    # Format and return
     return {
         "items": [
             {
-                "key_id": record.key_id,
-                "name": record.name,
-                "tenant": record.tenant,
-                "role": record.role,
-                "status": record.status,
-                "created_at": record.created_at.isoformat() if record.created_at else None,
-                "last_used_at": record.last_used_at.isoformat() if record.last_used_at else None
+                "key_id": k["key_id"],
+                "name": k["name"],
+                "tenant": k["tenant"],
+                "role": k["role"],
+                "status": k["status"],
+                "created_at": k["created_at"].isoformat() if k.get("created_at") else None,
+                "last_used_at": k["last_used_at"].isoformat() if k.get("last_used_at") else None
             }
-            for record in _API_KEY_REGISTRY.values()
+            for k in all_keys.values()
         ]
     }
 
@@ -303,22 +466,47 @@ def create_api_key(
 ):
     """Create a new API key."""
     import secrets
-    from app.security import _API_KEY_REGISTRY, APIKeyRecord
     
     # Generate a secure API key
     api_key = f"ubi_{secrets.token_urlsafe(32)}"
     key_id = f"key_{secrets.token_urlsafe(8)}"
+    created_at = datetime.now(timezone.utc)
     
+    # Always save to both DuckDB and in-memory registry for consistency
+    from app.core.security import _API_KEY_REGISTRY, APIKeyRecord
+    
+    # Create the record
     record = APIKeyRecord(
         key_id=key_id,
         name=name,
         tenant=tenant,
         role=role,
         status="active",
-        created_at=datetime.now(timezone.utc)
+        created_at=created_at
     )
     
+    # Try DuckDB state storage first
+    try:
+        from app.infrastructure.storage.state_storage import get_state_storage
+        storage = get_state_storage()
+        storage.save_api_key({
+            "key_id": key_id,
+            "api_key": api_key,
+            "tenant": tenant,
+            "role": role,
+            "name": name,
+            "status": "active",
+            "created_at": created_at,
+            "last_used_at": None,
+            "expires_at": None,
+        })
+        logger.debug(f"Saved API key {key_id} to DuckDB storage")
+    except Exception as e:
+        logger.warning(f"Failed to save key to state storage: {e}")
+    
+    # Always also save to in-memory registry (as backup and for immediate access)
     _API_KEY_REGISTRY[api_key] = record
+    logger.debug(f"Saved API key {key_id} to in-memory registry")
     
     # Return the key only once - it won't be retrievable later
     return {
@@ -335,7 +523,18 @@ def create_api_key(
 @app.delete("/v1/api-keys/{key_id}", tags=["API Keys"])
 def delete_api_key(key_id: str):
     """Revoke an API key."""
-    from app.security import _API_KEY_REGISTRY
+    # Try DuckDB state storage first
+    try:
+        from app.infrastructure.storage.state_storage import get_state_storage
+        storage = get_state_storage()
+        api_key = storage.get_api_key_for_revocation(key_id)
+        if api_key and storage.revoke_api_key(api_key):
+            return {"deleted": True, "key_id": key_id}
+    except Exception as e:
+        logger.debug(f"Failed to revoke key in state storage, using fallback: {e}")
+    
+    # Fallback to in-memory registry
+    from app.core.security import _API_KEY_REGISTRY
     
     for api_key, record in list(_API_KEY_REGISTRY.items()):
         if record.key_id == key_id:
@@ -348,7 +547,7 @@ def delete_api_key(key_id: str):
 @app.get("/v1/health", tags=["Health"])
 def health():
     """Public health check endpoint."""
-    from app.cache import get_cache_stats
+    from app.infrastructure.cache.redis_cache import get_cache_stats
     
     cache_stats = get_cache_stats()
     
@@ -365,32 +564,49 @@ def health():
 
 
 @app.get("/v1/datasets", tags=["Datasets"])
-def list_datasets():
+async def list_datasets():
     """List available datasets."""
-    catalog = load_catalog()
-    items = []
-    datasets = catalog.get("datasets", {})
-    # Handle both dict format (id: config) and list format
-    if isinstance(datasets, dict):
-        for dataset_id, d in datasets.items():
-            if isinstance(d, dict):
-                items.append({
-                    "id": dataset_id,
-                    "name": d.get("name", dataset_id),
-                    "description": d.get("description"),
-                    "tags": d.get("tags", []),
-                    "defaultTimezone": d.get("defaultTimezone", "UTC")
-                })
-    else:
-        for d in datasets:
-            items.append({
-                "id": d.get("id", "unknown"),
-                "name": d.get("name", d.get("id", "unknown")),
-                "description": d.get("description"),
-                "tags": d.get("tags", []),
-                "defaultTimezone": d.get("defaultTimezone", "UTC")
-            })
-    return {"items": items}
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.debug("Loading catalog for datasets endpoint")
+        catalog = load_catalog()
+        logger.debug("Catalog loaded successfully")
+        
+        items = []
+        datasets = catalog.get("datasets", {})
+        logger.debug(f"Datasets type: {type(datasets)}, count: {len(datasets) if hasattr(datasets, '__len__') else 'N/A'}")
+        
+        # Handle both dict format (id: config) and list format
+        if isinstance(datasets, dict):
+            for dataset_id, d in datasets.items():
+                if isinstance(d, dict):
+                    items.append({
+                        "id": dataset_id,
+                        "name": d.get("name", dataset_id),
+                        "description": d.get("description"),
+                        "tags": d.get("tags", []),
+                        "defaultTimezone": d.get("defaultTimezone", "UTC")
+                    })
+        elif isinstance(datasets, list):
+            for d in datasets:
+                if isinstance(d, dict):
+                    items.append({
+                        "id": d.get("id", "unknown"),
+                        "name": d.get("name", d.get("id", "unknown")),
+                        "description": d.get("description"),
+                        "tags": d.get("tags", []),
+                        "defaultTimezone": d.get("defaultTimezone", "UTC")
+                    })
+        
+        logger.debug(f"Returning {len(items)} datasets")
+        # Use JSONResponse to ensure proper Content-Length header
+        return JSONResponse(content={"items": items})
+    except Exception as e:
+        logger.error(f"Error loading datasets: {e}", exc_info=True)
+        # Return empty list on error instead of crashing
+        return JSONResponse(content={"items": []})
 
 
 @app.get("/v1/datasets/{datasetId}", tags=["Datasets"])
@@ -644,7 +860,7 @@ def run_sql_query(
     
     # SQL Validation using SQLGlot
     try:
-        from app.sql_builder import SQLBuilder
+        from app.domain.query import SQLBuilder
         import sqlglot
         from sqlglot.errors import ParseError
         
@@ -746,8 +962,8 @@ def run_sql_query(
     # For admin/default tenant, RLS is bypassed - use SQL as-is
     
     try:
-        from app.sources import SOURCES
-        from app.adapters.base import BaseAdapter
+        from app.domain.sources.manager import SOURCES
+        from app.infrastructure.adapters.base import BaseAdapter
         engine, conn = get_engine_and_conn(dataset["source"], SOURCES)
         
         # Ensure adapter is connected if it's an adapter
@@ -911,9 +1127,9 @@ def natural_language_query(
     # Execute query if requested
     if req.execute and result.translated_query and result.confidence > 0.3:
         try:
-            from app.query_engine import compile_and_run_query
-            from app.models import QueryRequest, DimensionRequest, MetricRequest
-            from app.sources import SOURCES
+            from app.domain.query import compile_and_run_query
+            from app.shared.types import QueryRequest, DimensionRequest, MetricRequest
+            from app.domain.sources import SOURCES
             
             # Build query request
             query_req = QueryRequest(
@@ -975,8 +1191,8 @@ def run_query(
     - Safety Guards (limit validation)
     - Query Caching (tenant-scoped)
     """
-    from app.query_engine import compile_and_run_query
-    from app.cache import execute_with_cache, build_cache_components_from_request
+    from app.domain.query import compile_and_run_query
+    from app.infrastructure.cache import execute_with_cache, build_cache_components_from_request
     from app.guards import validate_query_request, QueryValidationError, check_result_size
     
     request_id = getattr(request.state, "request_id", None)
@@ -988,7 +1204,7 @@ def run_query(
     try:
         req = validate_query_request(req)
     except QueryValidationError as e:
-        from app.errors import query_validation_error
+        from app.shared.exceptions.errors import query_validation_error
         error_dict = e.to_dict()
         raise query_validation_error(
             message=error_dict.get("message", str(e)),
@@ -1015,7 +1231,7 @@ def run_query(
         )
     
     try:
-        from app.sources import SOURCES
+        from app.domain.sources import SOURCES
         
         # Get source config - handle both string reference and object
         source_ref = dataset.get("source", {})
@@ -1035,7 +1251,7 @@ def run_query(
         engine, conn = get_engine_and_conn(source_config, SOURCES)
         
         # Ensure adapter is connected if it's an adapter
-        from app.adapters.base import BaseAdapter
+        from app.infrastructure.adapters.base import BaseAdapter
         if isinstance(conn, BaseAdapter) and not conn.is_connected():
             conn.connect()
         
@@ -1043,6 +1259,11 @@ def run_query(
         cache_components = build_cache_components_from_request(
             req, dataset, engine, ctx.tenant, ctx.role
         )
+        
+        # Track query start time
+        query_start_time = time.perf_counter()
+        query_success = False
+        query_error = None
         
         # Execute with caching
         def execute_query():
@@ -1053,15 +1274,111 @@ def run_query(
                 role=ctx.role
             )
         
-        columns, rows, stats = execute_with_cache(
-            execute_fn=execute_query,
-            cache_components=cache_components
-        )
+        try:
+            columns, rows, stats = execute_with_cache(
+                execute_fn=execute_query,
+                cache_components=cache_components
+            )
+            
+            # Log result size
+            check_result_size(rows)
+            
+            query_success = True
+            query_duration_ms = (time.perf_counter() - query_start_time) * 1000
+            
+            # Record query analytics
+            try:
+                from app.infrastructure.observability import get_analytics, QueryRecord
+                analytics = get_analytics()
+                if analytics is None:
+                    logger.warning("⚠ Analytics module not initialized - call init_observability() first")
+                elif not analytics.config.analytics_enabled:
+                    logger.debug("Analytics disabled in config")
+                else:
+                    cache_hit = stats.get("cache_hit", False) if stats else False
+                    # Extract dimension and metric names (handle both dict and object)
+                    def get_name(item):
+                        if isinstance(item, dict):
+                            return item.get("name", "")
+                        elif hasattr(item, "name"):
+                            return item.name
+                        elif hasattr(item, "__dict__"):
+                            return item.__dict__.get("name", "")
+                        return str(item)
+                    
+                    record = QueryRecord(
+                        query_id=str(request_id) if request_id else str(uuid.uuid4()),
+                        timestamp=datetime.now(timezone.utc),
+                        dataset=req.dataset,
+                        tenant_id=ctx.tenant,
+                        dimensions=[get_name(d) for d in req.dimensions],
+                        metrics=[get_name(m) for m in req.metrics],
+                        filters=req.filters if hasattr(req, 'filters') else None,
+                        duration_ms=query_duration_ms,
+                        rows_returned=len(rows),
+                        bytes_scanned=0,
+                        cache_hit=cache_hit,
+                        success=True,
+                        error_code=None,
+                        error_message=None,
+                        api_key_hash=None,
+                        user_id=None,
+                        source_ip=request.client.host if request.client else None,
+                        user_agent=request.headers.get("user-agent")
+                    )
+                    analytics.record_query(record)
+                    storage_type = "DuckDB" if (hasattr(analytics, '_use_storage') and analytics._use_storage) else "in-memory"
+                    logger.info(f"✓ Recorded query analytics: dataset={req.dataset}, duration={query_duration_ms:.2f}ms, storage={storage_type}")
+            except Exception as e:
+                logger.error(f"✗ Failed to record query analytics: {e}", exc_info=True)
+            
+            return QueryResponse(dataset=req.dataset, columns=columns, rows=rows, stats=stats)
         
-        # Log result size
-        check_result_size(rows)
-        
-        return QueryResponse(dataset=req.dataset, columns=columns, rows=rows, stats=stats)
+        except Exception as query_err:
+            query_duration_ms = (time.perf_counter() - query_start_time) * 1000
+            query_error = str(query_err)
+            
+            # Record failed query analytics
+            try:
+                from app.infrastructure.observability import get_analytics, QueryRecord
+                analytics = get_analytics()
+                if analytics:
+                    # Extract dimension and metric names (handle both dict and object)
+                    def get_name(item):
+                        if isinstance(item, dict):
+                            return item.get("name", "")
+                        elif hasattr(item, "name"):
+                            return item.name
+                        elif hasattr(item, "__dict__"):
+                            return item.__dict__.get("name", "")
+                        return str(item)
+                    
+                    record = QueryRecord(
+                        query_id=str(request_id) if request_id else str(uuid.uuid4()),
+                        timestamp=datetime.now(timezone.utc),
+                        dataset=req.dataset,
+                        tenant_id=ctx.tenant,
+                        dimensions=[get_name(d) for d in req.dimensions],
+                        metrics=[get_name(m) for m in req.metrics],
+                        filters=req.filters if hasattr(req, 'filters') else None,
+                        duration_ms=query_duration_ms,
+                        rows_returned=0,
+                        bytes_scanned=0,
+                        cache_hit=False,
+                        success=False,
+                        error_code="QUERY_ERROR",
+                        error_message=query_error,
+                        api_key_hash=None,
+                        user_id=None,
+                        source_ip=request.client.host if request.client else None,
+                        user_agent=request.headers.get("user-agent")
+                    )
+                    analytics.record_query(record)
+                    logger.debug(f"Recorded failed query analytics: dataset={req.dataset}, error={query_error}")
+            except Exception as e:
+                logger.warning(f"Failed to record failed query analytics: {e}", exc_info=True)
+            
+            raise
     
     except SetuPranaliError:
         raise
@@ -1087,7 +1404,7 @@ def create_source(request: Request, payload: dict):
     except SetuPranaliError:
         raise
     except Exception as e:
-        from app.errors import ErrorCode
+        from app.shared.exceptions.errors import ErrorCode
         raise SetuPranaliError(
             code=ErrorCode.ERR_SOURCE_INVALID,
             message=f"Failed to register source: {str(e)}",
@@ -1107,7 +1424,7 @@ def get_sources():
 @app.put("/v1/sources/{sourceId}", tags=["Sources"])
 def update_source_endpoint(request: Request, sourceId: str, payload: dict = Body(...)):
     """Update a data source."""
-    from app.sources import update_source, get_source
+    from app.domain.sources import update_source, get_source
     
     request_id = getattr(request.state, "request_id", None)
     
@@ -1143,7 +1460,7 @@ def update_source_endpoint(request: Request, sourceId: str, payload: dict = Body
 @app.get("/v1/sources/{sourceId}", tags=["Sources"])
 def get_source_endpoint(request: Request, sourceId: str):
     """Get a single data source by ID."""
-    from app.sources import get_source
+    from app.domain.sources import get_source
     
     request_id = getattr(request.state, "request_id", None)
     
@@ -1162,7 +1479,7 @@ def get_source_endpoint(request: Request, sourceId: str):
 @app.delete("/v1/sources/{sourceId}", tags=["Sources"])
 def remove_source(request: Request, sourceId: str):
     """Delete a data source."""
-    from app.sources import delete_source, get_source
+    from app.domain.sources import delete_source, get_source
     
     request_id = getattr(request.state, "request_id", None)
     
@@ -1192,6 +1509,7 @@ def test_source(request: Request, sourceId: str):
     request_id = getattr(request.state, "request_id", None)
     
     try:
+        from app.domain.sources import get_source_with_config
         source = get_source_with_config(sourceId)
         start_time = time.time()
 
@@ -1261,11 +1579,11 @@ def internal_status(ctx: TenantContext = Depends(require_internal_admin)):
     Requires internal admin API key.
     Returns comprehensive health information.
     """
-    from app.cache import get_cache_stats
+    from app.infrastructure.cache.redis_cache import get_cache_stats
     from app.rate_limit import get_rate_limit_status
     from app.guards import get_safety_status
-    from app.security import get_security_status
-    from app.crypto import is_encryption_configured
+    from app.core.security import get_security_status
+    from app.shared.utils.crypto import is_encryption_configured
     
     # Database connectivity check
     db_status = {"duckdb": False, "sources_db": False}
@@ -1277,7 +1595,7 @@ def internal_status(ctx: TenantContext = Depends(require_internal_admin)):
         pass
     
     try:
-        from app.sources import list_sources
+        from app.domain.sources.manager import list_sources
         list_sources()
         db_status["sources_db"] = True
     except Exception:
@@ -1297,3 +1615,11 @@ def internal_status(ctx: TenantContext = Depends(require_internal_admin)):
         "security": get_security_status(),
         "database": db_status
     }
+
+
+# =============================================================================
+# ANALYTICS ENDPOINT
+# =============================================================================
+
+# Analytics endpoints are now in app/api/v1/analytics.py
+# Registered via app.include_router(analytics_router) above

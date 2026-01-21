@@ -9,14 +9,9 @@ import {
   Trash2,
   Copy,
   Check,
-  Eye,
-  EyeOff,
-  Shield,
   AlertTriangle
 } from 'lucide-react';
-import axios from 'axios';
-
-const API_BASE = 'http://localhost:8080';
+import { api } from '../lib/api';
 
 interface ApiKey {
   key_id: string;
@@ -46,34 +41,45 @@ export default function ApiKeys() {
   const keysQuery = useQuery({
     queryKey: ['api-keys'],
     queryFn: async () => {
-      const response = await axios.get<{ items: ApiKey[] }>(`${API_BASE}/v1/api-keys`);
-      return response.data.items;
+      const data = await api.getApiKeys();
+      return data.items || [];
     },
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   // Create mutation
   const createMutation = useMutation({
     mutationFn: async () => {
-      const response = await axios.post<NewApiKeyResponse>(`${API_BASE}/v1/api-keys`, {
+      const data = await api.createApiKey({
         name: newKeyName,
         tenant: newKeyTenant,
         role: newKeyRole,
       });
-      return response.data;
+      return data;
     },
     onSuccess: (data) => {
       setCreatedKey(data);
+      // Invalidate and refetch the keys list
       queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      // Also refetch immediately
+      setTimeout(() => {
+        keysQuery.refetch();
+      }, 500);
     },
   });
 
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (keyId: string) => {
-      await axios.delete(`${API_BASE}/v1/api-keys/${keyId}`);
+      await api.deleteApiKey(keyId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      // Also refetch immediately
+      setTimeout(() => {
+        keysQuery.refetch();
+      }, 500);
     },
   });
 
@@ -326,7 +332,7 @@ export default function ApiKeys() {
               </tr>
             </thead>
             <tbody>
-              {keysQuery.data.map((key) => (
+              {keysQuery.data.map((key: ApiKey) => (
                 <tr key={key.key_id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">

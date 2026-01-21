@@ -9,9 +9,18 @@ const client = axios.create({
 
 // Add auth interceptor
 client.interceptors.request.use((config) => {
-  const apiKey = localStorage.getItem('apiKey');
+  let apiKey = localStorage.getItem('apiKey');
+  
+  // If no API key is set, use default development key
+  if (!apiKey && import.meta.env.DEV) {
+    apiKey = 'dev-key-123';
+    localStorage.setItem('apiKey', apiKey);
+    console.log('Using default development API key: dev-key-123');
+  }
+  
   if (apiKey) {
-    config.headers.Authorization = `Bearer ${apiKey}`;
+    // SetuPranali uses X-API-Key header, not Authorization Bearer
+    config.headers['X-API-Key'] = apiKey;
   }
   return config;
 });
@@ -44,6 +53,15 @@ export const api = {
   getApiKeys: async () => {
     const { data } = await client.get('/v1/api-keys');
     return data;
+  },
+
+  createApiKey: async (keyData: { name: string; tenant: string; role: string }) => {
+    const { data } = await client.post('/v1/api-keys', keyData);
+    return data;
+  },
+
+  deleteApiKey: async (keyId: string) => {
+    await client.delete(`/v1/api-keys/${keyId}`);
   },
 
   createSource: async (source: any) => {
@@ -98,8 +116,16 @@ export const api = {
   },
 
   // Analytics
-  getAnalytics: async () => {
-    const { data } = await client.get('/v1/analytics');
+  getAnalytics: async (hours: number = 24) => {
+    const { data } = await client.get(`/v1/analytics?hours=${hours}`);
+    return data;
+  },
+
+  // Recent Queries
+  getRecentQueries: async (limit: number = 10, dataset?: string) => {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    if (dataset) params.append('dataset', dataset);
+    const { data } = await client.get(`/v1/analytics/recent-queries?${params}`);
     return data;
   },
 

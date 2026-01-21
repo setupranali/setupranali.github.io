@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
 
-from app.security import require_api_key, TenantContext
+from app.core.security import require_api_key, TenantContext
 from app.ecosystem.dbt_integration import get_dbt_sync_service
 from app.ecosystem.cube_compatibility import get_cube_service
 from app.ecosystem.lookml_import import get_lookml_service
@@ -204,7 +204,7 @@ async def get_cube_meta(
     tenant: TenantContext = Depends(require_api_key)
 ):
     """Get Cube.js compatible meta response (for compatibility)."""
-    from app.catalog import load_catalog
+    from app.domain.sources import load_catalog
     
     try:
         catalog = load_catalog()

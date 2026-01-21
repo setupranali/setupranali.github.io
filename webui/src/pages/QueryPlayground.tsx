@@ -99,8 +99,21 @@ LIMIT 10`);
   const datasetsQuery = useQuery({
     queryKey: ['datasets'],
     queryFn: async () => {
-      const response = await axios.get<{ items: Dataset[] }>(`${API_BASE}/v1/datasets`);
-      return response.data.items || [];
+      try {
+        const response = await axios.get<{ items: Dataset[] }>(`${API_BASE}/v1/datasets`);
+        // Handle both { items: [...] } and direct array responses
+        const data = response.data;
+        if (Array.isArray(data)) {
+          return data;
+        }
+        if (data && Array.isArray(data.items)) {
+          return data.items;
+        }
+        return [];
+      } catch (error) {
+        console.error('Failed to fetch datasets:', error);
+        return [];
+      }
     },
     refetchOnMount: 'always',
     staleTime: 0,
@@ -131,10 +144,26 @@ LIMIT 10`);
   const sourceSchemasQuery = useQuery({
     queryKey: ['source-schemas', selectedSource],
     queryFn: async () => {
-      const response = await axios.get<{ schemas: SchemaInfo[] }>(`${API_BASE}/v1/modeling/sources/${selectedSource}/schemas`);
-      // Deduplicate schemas
-      const uniqueSchemas = [...new Map(response.data.schemas.map(s => [s.name, s])).values()];
-      return uniqueSchemas;
+      try {
+        const response = await axios.get<{ schemas: SchemaInfo[] }>(`${API_BASE}/v1/modeling/sources/${selectedSource}/schemas`);
+        // Handle both { schemas: [...] } and direct array responses
+        const data = response.data;
+        let schemas: SchemaInfo[] = [];
+        if (Array.isArray(data)) {
+          schemas = data;
+        } else if (data && Array.isArray(data.schemas)) {
+          schemas = data.schemas;
+        }
+        // Deduplicate schemas
+        const uniqueSchemas = [...new Map(schemas.map(s => [s.name, s])).values()];
+        return uniqueSchemas;
+      } catch (error: any) {
+        // If it's a decryption error, provide helpful message
+        if (error.response?.status === 500 && error.response?.data?.detail?.includes('cannot be decrypted')) {
+          throw new Error(`Source credentials cannot be decrypted. Please re-register this source with the current encryption key. Error: ${error.response.data.detail}`);
+        }
+        throw error;
+      }
     },
     enabled: queryMode === 'source' && !!selectedSource,
   });
@@ -379,11 +408,11 @@ LIMIT 10`);
                 onChange={(e) => setSelectedDataset(e.target.value)}
                 className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                {(datasetsQuery.data || []).map((ds) => (
+                {Array.isArray(datasetsQuery.data) ? datasetsQuery.data.map((ds) => (
                   <option key={ds.id} value={ds.id}>
                     {ds.name}
                   </option>
-                ))}
+                )) : null}
               </select>
             </div>
           ) : (
@@ -401,11 +430,11 @@ LIMIT 10`);
                 className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Select Source...</option>
-                {(sourcesQuery.data || []).map((src) => (
+                {Array.isArray(sourcesQuery.data) ? sourcesQuery.data.map((src) => (
                   <option key={src.id} value={src.id}>
                     {src.name} ({src.type})
                   </option>
-                ))}
+                )) : null}
               </select>
             </div>
           )}
@@ -516,7 +545,7 @@ LIMIT 10`);
                 </div>
               ) : schemaQuery.data?.fields ? (
                 <div className="space-y-1">
-                  {schemaQuery.data.fields.map((field, i) => (
+                  {Array.isArray(schemaQuery.data.fields) ? schemaQuery.data.fields.map((field, i) => (
                     <div
                       key={i}
                       className="flex items-center justify-between py-1.5 px-2 hover:bg-slate-700/50 rounded cursor-pointer group"
@@ -529,7 +558,7 @@ LIMIT 10`);
                         {field.type}
                       </span>
                     </div>
-                  ))}
+                  )) : null}
                 </div>
               ) : (
                 <p className="text-sm text-slate-500 text-center py-4">No schema available</p>
@@ -542,9 +571,18 @@ LIMIT 10`);
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
                 </div>
+              ) : sourceSchemasQuery.error ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center max-w-md px-4">
+                    <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                    <p className="text-red-400 font-medium mb-1">Error Loading Schemas</p>
+                    <p className="text-sm text-slate-400">{sourceSchemasQuery.error instanceof Error ? sourceSchemasQuery.error.message : 'Failed to load schemas'}</p>
+                    <p className="text-xs text-slate-500 mt-2">Please re-register this source from the Sources page.</p>
+                  </div>
+                </div>
               ) : sourceSchemasQuery.data?.length ? (
                 <div className="space-y-1">
-                  {sourceSchemasQuery.data.map((schema) => (
+                  {Array.isArray(sourceSchemasQuery.data) ? sourceSchemasQuery.data.map((schema) => (
                     <div key={schema.name}>
                       {/* Schema header */}
                       <div
@@ -563,7 +601,7 @@ LIMIT 10`);
                       {/* Tables in schema */}
                       {expandedSchemas.has(schema.name) && (
                         <div className="ml-4 pl-2 border-l border-slate-700">
-                          {schemaTablesCache[schema.name]?.map((table) => (
+                          {Array.isArray(schemaTablesCache[schema.name]) ? schemaTablesCache[schema.name].map((table) => (
                             <div key={table.fullName}>
                               {/* Table header */}
                               <div
@@ -597,7 +635,7 @@ LIMIT 10`);
                               {/* Columns in table */}
                               {expandedTables.has(table.fullName) && tableColumnsCache[table.fullName] && (
                                 <div className="ml-6 pl-2 border-l border-slate-700/50">
-                                  {tableColumnsCache[table.fullName].map((col, i) => (
+                                  {Array.isArray(tableColumnsCache[table.fullName]) ? tableColumnsCache[table.fullName].map((col, i) => (
                                     <div
                                       key={i}
                                       className="flex items-center justify-between py-1 px-2 hover:bg-slate-700/50 rounded cursor-pointer group"
@@ -611,11 +649,11 @@ LIMIT 10`);
                                         {col.dataType}
                                       </span>
                                     </div>
-                                  ))}
+                                  )) : null}
                                 </div>
                               )}
                             </div>
-                          )) || (
+                          )) : (
                             <div className="flex items-center justify-center py-4">
                               <Loader2 className="w-4 h-4 text-slate-500 animate-spin" />
                             </div>
@@ -623,7 +661,7 @@ LIMIT 10`);
                         </div>
                       )}
                     </div>
-                  ))}
+                  )) : null}
                 </div>
               ) : (
                 <p className="text-sm text-slate-500 text-center py-4">No schemas found</p>

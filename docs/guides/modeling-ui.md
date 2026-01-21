@@ -363,15 +363,50 @@ console.log(result.rows);
 - Limit sample data queries
 - Use LIMIT in semantic queries
 
-## YAML Contract Export
+## YAML Contract Export/Import
 
-The Modeling Studio can export semantic models as YAML contracts:
+The Modeling Studio integrates with the Contract Editor for seamless YAML management:
+
+### Export
 
 ```http
 GET /v1/modeling/semantic/{modelId}/yaml
 ```
 
-Returns the semantic model in YAML format for use in `catalog.yaml`.
+Returns the semantic model in YAML format with:
+- All dimensions and metrics
+- **sourceTable** for each dimension and measure
+- Proper field extraction (removes aggregation wrappers)
+- Calculated fields and time intelligence
+
+### Import
+
+```http
+PUT /v1/modeling/semantic/{modelId}/from-yaml
+Content-Type: application/json
+{
+  "content": "..."
+}
+```
+
+Updates the semantic model from YAML, preserving:
+- Individual `sourceTable` assignments
+- Field mappings
+- Calculated expressions
+
+### Contract Editor Integration
+
+1. **Pull from Model** - Generates YAML with correct `sourceTable` mappings
+2. **Push to Model** - Updates semantic model from edited YAML
+3. **Validation** - Pre-query validation ensures all `sourceTable` values exist in ERD
+4. **Error Messages** - Clear guidance when columns are mapped to wrong tables
+
+### Key Features
+
+- **Automatic sourceTable Inclusion** - All fields include `sourceTable` in YAML
+- **Table Validation** - Validates `sourceTable` exists in ERD before query execution
+- **Bulk Operations** - Export/import all contracts at once
+- **Error Recovery** - Helpful error messages guide users to fix table mappings
 
 ## Roadmap
 

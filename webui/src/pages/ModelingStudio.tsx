@@ -8,7 +8,7 @@
  * - Query Workbench (bottom)
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Panel,
@@ -108,7 +108,27 @@ export default function ModelingStudio() {
   });
 
   // Use first available source or demo
-  const sourceId = activeSourceId || sourcesQuery.data?.[0]?.id || 'demo';
+  // Validate activeSourceId exists in sources list, otherwise use first available
+  const validSourceId = useMemo(() => {
+    if (!sourcesQuery.data || sourcesQuery.data.length === 0) {
+      return 'demo'; // Fallback to demo if no sources
+    }
+    
+    // If activeSourceId exists in sources list, use it
+    if (activeSourceId && sourcesQuery.data.some(s => s.id === activeSourceId)) {
+      return activeSourceId;
+    }
+    
+    // Otherwise, use first available source
+    const firstSourceId = sourcesQuery.data[0]?.id;
+    if (firstSourceId && firstSourceId !== activeSourceId) {
+      // Clear stale activeSourceId
+      setActiveSource(firstSourceId);
+    }
+    return firstSourceId || 'demo';
+  }, [activeSourceId, sourcesQuery.data, setActiveSource]);
+  
+  const sourceId = validSourceId;
 
   // Fetch ERD models from API
   const erdQuery = useQuery({
@@ -280,6 +300,111 @@ export default function ModelingStudio() {
   // State for save operation
   const [isSaving, setIsSaving] = useState(false);
 
+  // Handle Export - exports current ERD and Semantic models to JSON file
+  const handleExport = useCallback(() => {
+    const exportData: {
+      erdModels: typeof erdModels;
+      semanticModels: typeof semanticModels;
+      sourceId: string;
+      exportedAt: string;
+    } = {
+      erdModels: allERDModels.filter(m => m.sourceId === sourceId),
+      semanticModels: allSemanticModels.filter(m => m.sourceId === sourceId),
+      sourceId,
+      exportedAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `setupranali-models-${sourceId}-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [allERDModels, allSemanticModels, sourceId]);
+
+  // Handle Import - imports ERD and Semantic models from JSON file
+  const handleImport = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const importData = JSON.parse(text);
+
+        // Validate import data structure
+        if (!importData.erdModels || !importData.semanticModels) {
+          alert('Invalid import file format. Expected ERD and Semantic models.');
+          return;
+        }
+
+        // Confirm import
+        const confirmed = window.confirm(
+          `This will import ${importData.erdModels.length} ERD model(s) and ${importData.semanticModels.length} Semantic model(s). ` +
+          `This will create new models - existing models will not be overwritten. Continue?`
+        );
+        if (!confirmed) return;
+
+        // Import ERD models
+        for (const erdModel of importData.erdModels) {
+          try {
+            // Create new ERD model via API
+            const newERD = await modelingApi.createERDModel({
+              name: `${erdModel.name} (Imported)`,
+              sourceId: sourceId, // Use current source ID
+            });
+            
+            // Update with nodes and edges
+            await modelingApi.updateERDModel(newERD.id, {
+              nodes: erdModel.nodes || [],
+              edges: erdModel.edges || [],
+            });
+          } catch (error) {
+            console.error(`Failed to import ERD model ${erdModel.name}:`, error);
+          }
+        }
+
+        // Import Semantic models
+        for (const semanticModel of importData.semanticModels) {
+          try {
+            // Find the corresponding ERD model (by name or use first available)
+            const erdModelId = allERDModels.length > 0 ? allERDModels[0].id : undefined;
+            
+            // Create new Semantic model via API
+            const newSemantic = await modelingApi.createSemanticModel({
+              name: `${semanticModel.name} (Imported)`,
+              sourceId: sourceId,
+              erdModelId,
+            });
+            
+            // Update with dimensions, measures, and calculated fields
+            await modelingApi.updateSemanticModel(newSemantic.id, {
+              dimensions: semanticModel.dimensions || [],
+              measures: semanticModel.measures || [],
+              calculatedFields: semanticModel.calculatedFields || [],
+            });
+          } catch (error) {
+            console.error(`Failed to import Semantic model ${semanticModel.name}:`, error);
+          }
+        }
+
+        // Refresh queries
+        queryClient.invalidateQueries({ queryKey: ['erd-models', sourceId] });
+        queryClient.invalidateQueries({ queryKey: ['semantic-models', sourceId] });
+
+        alert('Import completed successfully!');
+      } catch (error) {
+        console.error('Failed to import:', error);
+        alert('Failed to import models. Please check the file format and try again.');
+      }
+    };
+    input.click();
+  }, [sourceId, allERDModels, queryClient]);
+
   // Handle Save - saves current ERD model (nodes and edges) to API
   const handleSave = useCallback(async () => {
     if (!activeERDId) {
@@ -435,11 +560,19 @@ export default function ModelingStudio() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800 rounded-lg text-sm text-slate-400 transition-colors">
+          <button 
+            onClick={handleImport}
+            className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800 rounded-lg text-sm text-slate-400 transition-colors"
+            title="Import models from JSON file"
+          >
             <Upload className="w-4 h-4" />
             Import
           </button>
-          <button className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800 rounded-lg text-sm text-slate-400 transition-colors">
+          <button 
+            onClick={handleExport}
+            className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800 rounded-lg text-sm text-slate-400 transition-colors"
+            title="Export models to JSON file"
+          >
             <Download className="w-4 h-4" />
             Export
           </button>

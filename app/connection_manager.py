@@ -21,9 +21,9 @@ import logging
 from typing import Any, Dict, Optional, Tuple, Union
 
 # Import adapters
-from app.adapters import get_adapter, get_adapter_for_source, list_adapters
-from app.adapters.base import BaseAdapter, AdapterResult, ConnectionError
-from app.adapters.duckdb_adapter import get_shared_duckdb
+from app.infrastructure.adapters.factory import get_adapter, get_adapter_for_source, list_adapters
+from app.infrastructure.adapters.base import BaseAdapter, AdapterResult, ConnectionError
+from app.infrastructure.adapters.duckdb_adapter import get_shared_duckdb
 
 logger = logging.getLogger(__name__)
 

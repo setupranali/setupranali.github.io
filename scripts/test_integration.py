@@ -205,7 +205,7 @@ def main():
         import os
         # Add parent directory to path
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from app.sql_builder import SQLBuilder
+        from app.domain.query.builder import SQLBuilder
         builder = SQLBuilder(dialect="postgres")
         sql, params = builder.build_query(
             dimensions=["city"],

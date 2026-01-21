@@ -27,14 +27,14 @@ from typing import Any, Dict, List, Optional, Tuple
 import re
 import xml.etree.ElementTree as ET
 
-from app.catalog import load_catalog, get_dataset
-from app.models import QueryRequest, QueryDimension, QueryMetric, OrderBy
-from app.query_engine import compile_and_run_query
-from app.sources import SOURCES
+from app.domain.sources.catalog import load_catalog, get_dataset
+from app.shared.types.models import QueryRequest, QueryDimension, QueryMetric, OrderBy
+from app.domain.query.engine import compile_and_run_query
+from app.domain.sources.manager import SOURCES
 from app.connection_manager import get_engine_and_conn
-from app.security import require_api_key, TenantContext
-from app.cache import execute_with_cache, build_cache_components_from_request
-from app.errors import dataset_not_found, internal_error, SetuPranaliError
+from app.core.security import require_api_key, TenantContext
+from app.infrastructure.cache.redis_cache import execute_with_cache, build_cache_components_from_request
+from app.shared.exceptions.errors import dataset_not_found, internal_error, SetuPranaliError
 
 router = APIRouter()
 
