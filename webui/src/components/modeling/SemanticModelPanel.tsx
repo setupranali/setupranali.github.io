@@ -114,7 +114,7 @@ export function SemanticModelPanel({
   const addDimensionMutation = useMutation({
     mutationFn: (data: Parameters<typeof modelingApi.addDimension>[1]) =>
       modelingApi.addDimension(semanticModelId, data),
-    onSuccess: (dimension) => {
+    onSuccess: (_dimension) => {
       // Already added locally, just close dialog if open
       setShowAddDialog(false);
     },
@@ -126,7 +126,7 @@ export function SemanticModelPanel({
   const addMeasureMutation = useMutation({
     mutationFn: (data: Parameters<typeof modelingApi.addMeasure>[1]) =>
       modelingApi.addMeasure(semanticModelId, data),
-    onSuccess: (measure) => {
+    onSuccess: (_measure) => {
       // Already added locally, just close dialog if open
       setShowAddDialog(false);
       // Note: ID replacement is handled in the drop handler if needed
@@ -304,7 +304,7 @@ export function SemanticModelPanel({
   const updateMeasureMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       modelingApi.updateMeasure(semanticModelId, id, data),
-    onSuccess: (updatedMeasure, { id, data }) => {
+    onSuccess: (_updatedMeasure, { id, data }) => {
       // Update local store
       updateMeasure(id, data);
       setEditItem(null);
@@ -320,7 +320,7 @@ export function SemanticModelPanel({
   const updateCalculatedFieldMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       modelingApi.updateCalculatedField(semanticModelId, id, data),
-    onSuccess: (updated, { id, data }) => {
+    onSuccess: (_updated, { id, data }) => {
       updateCalculatedField(id, data);
       setEditItem(null);
       setShowAddDialog(false);
