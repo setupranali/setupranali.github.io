@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Moon, Sun, Bell, Shield } from 'lucide-react';
+import { Moon, Sun, Bell, Shield } from 'lucide-react';
 import { useThemeStore } from '../store/theme';
 
 export default function Settings() {

@@ -6,7 +6,6 @@ import {
   Database,
   Table2,
   Clock,
-  RefreshCw,
   AlertCircle,
   CheckCircle2,
   Loader2,
@@ -85,7 +84,7 @@ LIMIT 10`);
   const [queryMode, setQueryMode] = useState<QueryMode>('dataset');
   const [selectedDataset, setSelectedDataset] = useState('orders');
   const [selectedSource, setSelectedSource] = useState<string>('');
-  const [selectedSchema, setSelectedSchema] = useState<string>('');
+  const [selectedSchema] = useState<string>('');
   const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
   const [result, setResult] = useState<QueryResult | null>(null);
@@ -169,7 +168,8 @@ LIMIT 10`);
   });
 
   // Fetch tables for selected schema
-  const sourceTablesQueries = useQuery({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _sourceTablesQueries = useQuery({
     queryKey: ['source-tables', selectedSource, selectedSchema],
     queryFn: async () => {
       const response = await axios.get<{ tables: TableInfo[] }>(`${API_BASE}/v1/modeling/sources/${selectedSource}/schemas/${selectedSchema}/tables`);

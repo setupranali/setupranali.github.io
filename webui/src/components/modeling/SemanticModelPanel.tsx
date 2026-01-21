@@ -20,8 +20,6 @@ import {
   Edit2,
   Eye,
   EyeOff,
-  ChevronDown,
-  ChevronRight,
   Calendar,
   Globe,
   Layers,
