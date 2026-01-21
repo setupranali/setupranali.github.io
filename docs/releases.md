@@ -6,6 +6,48 @@ This page contains release notes for SetuPranali. For the complete changelog, se
 
 ## Latest Release
 
+### Version 1.3.1 - 2025-01-21
+
+**Release Date**: January 21, 2025
+
+#### Bug Fixes
+
+- **Fixed DbtSemanticModel dataclass ordering**
+  - Moved 'model' field before optional fields to fix Python dataclass ordering requirement
+  - Ensures proper initialization of DBT semantic models
+
+- **Improved catalog parsing**
+  - Updated `catalog.py get_dataset()` to handle both dict and list formats
+  - Updated `main.py list_datasets()` to handle both dict and list formats
+  - More robust catalog.yaml parsing
+
+- **Fixed source resolution**
+  - Fixed source resolution in `run_query()` to properly resolve string source references from catalog.yaml sources section
+  - Ensures queries can correctly reference sources defined in catalog
+
+**Impact**: These fixes ensure the Docker image starts correctly and can execute queries against the built-in orders dataset.
+
+---
+
+### Version 1.3.0
+
+**Release Date**: TBD
+
+#### Features
+- Enhanced query execution reliability
+- Improved error handling
+
+---
+
+### Version 1.2.0
+
+**Release Date**: TBD
+
+#### Features
+- Additional improvements and bug fixes
+
+---
+
 ### Version 1.1.0 (In Development)
 
 **Release Date**: TBD
