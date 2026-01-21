@@ -40,6 +40,7 @@ import duckdb
 from fastapi import FastAPI, HTTPException, Depends, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app.domain.sources.catalog import load_catalog, get_dataset
@@ -348,6 +349,15 @@ app.include_router(
 
 # Analytics API endpoints
 app.include_router(analytics_router)
+
+# Serve static files (webui) in production
+# Only mount if webui/dist directory exists (production build)
+webui_dist_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "webui", "dist")
+if os.path.exists(webui_dist_path):
+    app.mount("/", StaticFiles(directory=webui_dist_path, html=True), name="static")
+    logger.info(f"Web UI static files mounted from {webui_dist_path}")
+else:
+    logger.debug("Web UI dist directory not found - running in API-only mode")
 
 
 # =============================================================================

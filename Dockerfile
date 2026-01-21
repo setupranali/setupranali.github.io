@@ -14,9 +14,28 @@
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Stage 1: Builder
+# Stage 1: Frontend Builder
 # -----------------------------------------------------------------------------
-# Install dependencies in a separate stage to keep final image small.
+# Build React web UI
+
+FROM node:20-slim AS frontend-builder
+
+WORKDIR /build/webui
+
+# Copy package files
+COPY webui/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source and build
+COPY webui/ ./
+RUN npm run build
+
+# -----------------------------------------------------------------------------
+# Stage 2: Python Builder
+# -----------------------------------------------------------------------------
+# Install Python dependencies in a separate stage to keep final image small.
 
 FROM python:3.11-slim AS builder
 
@@ -40,7 +59,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 
 # -----------------------------------------------------------------------------
-# Stage 2: Production
+# Stage 3: Production
 # -----------------------------------------------------------------------------
 # Minimal runtime image with only necessary files.
 
@@ -71,6 +90,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy application code
 COPY --chown=appuser:appuser app/ ./app/
 COPY --chown=appuser:appuser catalog.yaml ./
+
+# Copy built webui from frontend-builder stage
+COPY --from=frontend-builder --chown=appuser:appuser /build/webui/dist ./webui/dist
 
 # Create directory for SQLite database with proper permissions
 RUN mkdir -p /app/app/db && chown -R appuser:appuser /app/app/db
