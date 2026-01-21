@@ -25,8 +25,8 @@ WORKDIR /build/webui
 # Copy package files
 COPY webui/package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (including dev dependencies for build)
+RUN npm ci
 
 # Copy source and build
 COPY webui/ ./
