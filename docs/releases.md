@@ -4,11 +4,11 @@ This page contains release notes for SetuPranali. For the complete changelog, se
 
 ---
 
-## Latest Release
+## Latest Releases
 
-### Version 1.3.1 - 2025-01-21
+### Version 1.3.1 - January 4, 2026
 
-**Release Date**: January 21, 2025
+**Release Date**: January 4, 2026
 
 #### Bug Fixes
 
@@ -29,28 +29,51 @@ This page contains release notes for SetuPranali. For the complete changelog, se
 
 ---
 
-### Version 1.3.0
+### Version 1.3.0 - December 29, 2025
 
-**Release Date**: TBD
+**Release Date**: December 29, 2025
 
-#### Features
+#### Major Features
+
+- **Enterprise BI Features**
+  - Hyper export support for Tableau
+  - Embedded analytics capabilities
+  - White-label branding support
+  - Multi-region deployment support
+
+#### Improvements
 - Enhanced query execution reliability
 - Improved error handling
+- Better enterprise-grade features
 
 ---
 
-### Version 1.2.0
+### Version 1.2.0 - December 29, 2025
 
-**Release Date**: TBD
+**Release Date**: December 29, 2025
 
-#### Features
-- Additional improvements and bug fixes
+#### Major Features
+
+- **New BI Tool Integrations**
+  - Apache Superset dialect support
+  - Metabase marketplace integration
+  - Looker Studio connector
+  - Excel Add-in
+  - Google Sheets connector
+
+#### Improvements
+- Expanded BI tool ecosystem support
+- Enhanced connector capabilities
 
 ---
 
-### Version 1.1.0 (In Development)
+### Version 1.1.0 - December 29, 2025
 
-**Release Date**: TBD
+**Release Date**: December 29, 2025
+
+#### Bug Fixes
+- Fixed Metabase driver build
+- Removed invalid plugin dependency
 
 #### Major Features
 
